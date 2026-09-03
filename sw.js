@@ -11,6 +11,8 @@ const VERSION = "snooker-v2";
 /* Alles, was die App zum Starten braucht. Relative Pfade, damit es
    egal ist, in welchem Ordner die App liegt. */
 const DATEIEN = [
+  "index.html",       /* leitet nur weiter, muss aber mit in den Cache,
+                         sonst scheitert der Start ueber die kurze Adresse */
   "SnookerApp.html",
   "auswertung.html",
   "manifest.json",
