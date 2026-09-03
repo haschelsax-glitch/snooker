@@ -1,0 +1,14 @@
+# Weisse Liste: erst alles ausschliessen, dann nur die App-Dateien
+# wieder hereinholen. So kann kein Backup, kein Export und kein
+# Schluessel aus Versehen ins oeffentliche Netz wandern.
+/*
+!/.gitignore
+!/.gitattributes
+!/index.html
+!/SnookerApp.html
+!/auswertung.html
+!/sw.js
+!/manifest.json
+!/icon-192.png
+!/icon-512.png
+!/icon-maskable-512.png

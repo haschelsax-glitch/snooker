@@ -1,0 +1,1595 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snooker – Auswertung</title>
+<meta name="theme-color" content="#cc5500">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+/* Palette: die ersten beiden Plaetze der geprueften Kategorienfolge.
+   Blau = Pot-Quote, Orange = Zweite Baelle. Beide Modi einzeln gesetzt,
+   nicht umgeschaltet. */
+:root{
+  color-scheme:light;
+  --surface-0:#f4f4f2;
+  --surface-1:#fcfcfb;
+  --line:#e2e2dd;
+  --grid:#e8e8e3;
+  --text-1:#0b0b0b;
+  --text-2:#52514e;
+  --text-3:#83827c;
+  --serie-1:#2a78d6;   /* Pot-Quote */
+  --serie-2:#eb6834;   /* Zweite Baelle */
+  --serie-3:#2f9e5f;   /* Safe-Quote */
+  --gut:#1baf7a;
+  --schlecht:#e34948;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --surface-0:#111110;
+    --surface-1:#1a1a19;
+    --line:#33322f;
+    --grid:#2a2a28;
+    --text-1:#ffffff;
+    --text-2:#c3c2b7;
+    --text-3:#8f8e86;
+    --serie-1:#3987e5;
+    --serie-2:#d95926;
+    --serie-3:#3fb877;
+    --gut:#199e70;
+    --schlecht:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --surface-0:#111110; --surface-1:#1a1a19; --line:#33322f; --grid:#2a2a28;
+  --text-1:#fff; --text-2:#c3c2b7; --text-3:#8f8e86;
+  --serie-1:#3987e5; --serie-2:#d95926; --serie-3:#3fb877;
+  --gut:#199e70; --schlecht:#e66767;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-1);
+  font:15px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.huelle{max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;
+  margin-bottom:18px}
+h1{font-size:21px;margin:0;font-weight:650;letter-spacing:-.01em}
+.stand{font-size:13px;color:var(--text-3)}
+.waehler{margin-left:auto;display:flex;gap:8px}
+select,button.knopf{font:inherit;font-size:13px;padding:6px 10px;
+  border:1px solid var(--line);border-radius:8px;
+  background:var(--surface-1);color:var(--text-1);cursor:pointer}
+
+/* Reiter */
+.reiter{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px;
+  border-bottom:1px solid var(--line);padding-bottom:0}
+.reiter-k{font:inherit;font-size:13.5px;padding:8px 12px;border:0;
+  border-bottom:2px solid transparent;background:none;color:var(--text-2);
+  cursor:pointer;margin-bottom:-1px}
+.reiter-k:hover{color:var(--text-1)}
+.reiter-k.an{color:var(--text-1);font-weight:600;
+  border-bottom-color:var(--serie-1)}
+
+h2{font-size:14px;font-weight:650;margin:30px 0 10px;letter-spacing:.01em}
+h2 span{font-weight:400;color:var(--text-3);margin-left:8px;font-size:13px}
+
+/* Klappfaecher. Je Gruppe ist hoechstens eines offen - macht die Seite
+   kurz und man sucht nicht mit dem Rollbalken. */
+.fach{border-bottom:1px solid var(--line)}
+.fachkopf{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  font:inherit;font-size:14px;font-weight:650;letter-spacing:.01em;
+  color:var(--text-1);background:none;border:0;padding:14px 6px;cursor:pointer}
+.fachkopf:hover{color:var(--serie-1)}
+.fachkopf .pfeil{flex:0 0 auto;width:0;height:0;
+  border-left:6px solid currentColor;border-top:4.5px solid transparent;
+  border-bottom:4.5px solid transparent;color:var(--text-3);
+  transition:transform .12s}
+.fach.offen>.fachkopf .pfeil{transform:rotate(90deg)}
+.fachzusatz{font-weight:400;color:var(--text-3);font-size:13px}
+.fachinhalt{display:none;padding:2px 0 22px}
+.fach.offen>.fachinhalt{display:block}
+.fachinhalt>h2:first-child{margin-top:0}
+
+/* Ein Frame im Verlauf: dasselbe Fach, aber als Karte wie bisher. */
+.frfach{border:1px solid var(--line);border-radius:12px;
+  background:var(--surface-1);margin-bottom:8px}
+.frfach>.fachkopf{padding:11px 16px;font-weight:600}
+.frfach>.fachinhalt{padding:0 16px 12px;
+  border-top:1px solid var(--line);margin-top:0}
+.frfach>.fachinhalt{padding-top:8px}
+.frfach .fachzusatz{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.frfach .fachzusatz .pt{font-size:15px;font-weight:600;color:var(--text-1);
+  font-variant-numeric:tabular-nums}
+/* Die Zusammenfassung des Frames sitzt in derselben Karte wie das
+   Protokoll, deshalb einen Ton dunkler statt gleichfarbig. */
+.frduell{background:var(--surface-0);margin:0 0 12px}
+
+/* Der Stoßverlauf im Frame: ein Schalter, keine zweite Karte. Deshalb
+   ohne Rahmen, kleiner und leiser als die Frame-Überschrift. */
+.stossfach{border-bottom:0}
+.stossfach>.fachkopf{padding:4px 0 8px;font-size:13px;font-weight:500;
+  color:var(--text-2)}
+.stossfach>.fachinhalt{padding:0 0 4px}
+
+/* Kennzahlen */
+.kacheln{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (min-width:700px){ .kacheln{grid-template-columns:repeat(4,1fr)} }
+.kachel{background:var(--surface-1);border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px}
+/* Die drei Kacheln von "Auf einen Blick" tragen die Farbe ihrer Linie
+   im Diagramm darunter. */
+.kachel.farbig{border-left:5px solid var(--ton);padding-left:13px}
+.kachel.farbig .zahl{color:var(--ton)}
+.kachel .was{font-size:12px;color:var(--text-2);margin-bottom:6px}
+.kachel .zahl{font-size:30px;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.kachel .roh{font-size:12px;color:var(--text-3);margin-top:4px;
+  font-variant-numeric:tabular-nums}
+
+/* Diagramme */
+.tafel{background:var(--surface-1);border:1px solid var(--line);
+  border-radius:12px;padding:14px 14px 8px;position:relative}
+.legende{display:flex;gap:16px;font-size:12px;color:var(--text-2);
+  margin-bottom:6px;flex-wrap:wrap}
+.legende i{display:inline-block;width:14px;height:3px;border-radius:2px;
+  vertical-align:middle;margin-right:6px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.gitter{stroke:var(--grid);stroke-width:1}
+.achse{fill:var(--text-3);font-size:11px}
+.saeule{fill:var(--serie-1)}
+.saeule:hover{fill:var(--serie-2)}
+.linie{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.punkt{stroke:var(--surface-1);stroke-width:2}
+.marke{stroke:var(--text-3);stroke-width:1;stroke-dasharray:3 3}
+.mittel{fill:none;stroke-width:1.5;stroke-dasharray:6 5;opacity:.6}
+.etikett{font-size:11px;font-weight:600;fill:var(--text-2)}
+
+.blase{position:absolute;pointer-events:none;background:var(--surface-1);
+  border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+  font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.13);
+  white-space:nowrap;opacity:0;transition:opacity .08s;z-index:5}
+.blase b{font-weight:600}
+.blase div{display:flex;gap:8px;align-items:center;margin-top:3px}
+.blase i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.blase span{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+
+/* Tabellen */
+.rollen{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap;
+  border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font-weight:600;color:var(--text-2);font-size:11.5px;
+  letter-spacing:.03em;text-transform:uppercase;
+  position:sticky;top:0;background:var(--surface-0)}
+td:first-child,th:first-child{text-align:left}
+td.text,th.text{text-align:left;font-variant-numeric:normal}
+tbody tr:hover{background:var(--surface-1)}
+.sieg{color:var(--gut);font-weight:600}
+.pleite{color:var(--schlecht)}
+.leise{color:var(--text-3)}
+.tabelle-aus{display:none}
+
+/* --- Match-Detail --- */
+tr.klickbar{cursor:pointer}
+tr.klickbar:hover td:first-child{text-decoration:underline}
+.zurueck{font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface-1);color:var(--text-1);cursor:pointer}
+.kopfzeile{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-bottom:4px}
+.ergebnis{font-size:26px;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.gegen{font-size:15px;color:var(--text-2)}
+
+/* Zwei Spalten, links ich, rechts der Gegner - wie im Zähler */
+.duell{background:var(--surface-1);border:1px solid var(--line);
+  border-radius:12px;padding:6px 16px 12px}
+.dz{display:flex;align-items:baseline;gap:10px;padding:7px 0;
+  border-bottom:1px solid var(--line)}
+.dz:last-child{border-bottom:0}
+.dz .w{flex:1 1 0;font-size:16px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.dz .w.r{text-align:right}
+.dz .w em{font-style:normal;font-weight:400;font-size:12px;color:var(--text-3);
+  margin:0 4px}
+.dz .l{flex:0 0 auto;min-width:150px;text-align:center;font-size:12.5px;
+  color:var(--text-2)}
+.dnamen{display:flex;gap:10px;padding:8px 0 2px;font-size:12px;
+  font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.dnamen div{flex:1 1 0}
+.dnamen div:last-child{text-align:right}
+.dnamen i{display:inline-block;width:9px;height:9px;border-radius:50%;
+  margin-right:6px}
+
+/* Protokoll */
+.frame{background:var(--surface-1);border:1px solid var(--line);
+  border-radius:12px;padding:12px 16px;margin-bottom:10px}
+.frkopf{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;
+  font-size:13px;color:var(--text-2);margin-bottom:8px;
+  padding-bottom:8px;border-bottom:1px solid var(--line)}
+.frkopf b{font-size:15px;color:var(--text-1);font-weight:600}
+.frkopf .pt{font-size:15px;font-weight:600;color:var(--text-1);
+  font-variant-numeric:tabular-nums}
+/* Jede Zeile hängt an ihrer Seite: Spieler 1 links, Spieler 2 rechts.
+   Name, Bälle und Punktzahl bleiben dabei beieinander. */
+.zeile{display:flex;align-items:center;gap:8px;padding:3px 0;
+  font-size:13px;line-height:1.9;justify-content:flex-start}
+.zeile.p1{flex-direction:row-reverse}
+.zeile .wer{font-weight:600;font-size:12px;color:var(--text-2);
+  min-width:70px}
+.zeile.p1 .wer{text-align:right}
+.zeile .baelle{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.zeile .summe{font-weight:600;font-variant-numeric:tabular-nums;
+  min-width:22px;text-align:right}
+.zeile.p1 .summe{text-align:left}
+.zeile.foul{color:var(--schlecht)}
+.zeile.ruhig{color:var(--text-3)}
+.b{width:22px;height:22px;border-radius:50%;display:inline-flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  box-shadow:0 0 0 1px rgba(128,128,128,.35)}
+.b1{background:#d01414;color:#fff}
+.b2{background:#f2d900;color:#3a3300}
+.b3{background:#12a812;color:#fff}
+.b4{background:#9c5a10;color:#fff}
+.b5{background:#1a1ac8;color:#fff}
+.b6{background:#f58ab8;color:#4a0022}
+.b7{background:#000;color:#fff;box-shadow:0 0 0 1px rgba(160,160,160,.6)}
+.b.frei{outline:2px dotted var(--text-3);outline-offset:2px}
+.b.lang{box-shadow:0 0 0 2px #eb6834}
+.knopfzeile{display:flex;gap:8px;margin:8px 0 0;justify-content:flex-end}
+.hinweis{font-size:12px;color:var(--text-3);margin-top:8px;line-height:1.6}
+.laden{padding:40px 0;text-align:center;color:var(--text-3)}
+.warnung{background:var(--surface-1);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;
+  font-size:12.5px;color:var(--text-2);line-height:1.6;margin-bottom:10px}
+.warnung b{color:var(--text-1);font-weight:600}
+.warnung::before{content:"Achtung ";font-weight:600;color:var(--text-1)}
+.fehler{background:var(--surface-1);border:1px solid var(--schlecht);
+  border-radius:12px;padding:16px;color:var(--text-1)}
+</style>
+
+<div class="huelle">
+  <header>
+    <h1>Snooker – Auswertung</h1>
+    <div class="stand" id="stand"></div>
+    <div class="waehler">
+      <select id="wSpieler"></select>
+      <select id="wZeit"></select>
+    </div>
+  </header>
+
+  <nav class="reiter" id="reiter"></nav>
+
+  <div id="inhalt"><div class="laden">Daten werden geholt …</div></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var SRV = "https://wowzxntkaaahovldaozt.supabase.co/rest/v1/";
+var KEY = "sb_publishable_OY5VghSFG2QSRQ4_o_Y0mg_es9zDAS1";
+
+var el = function(i){ return document.getElementById(i); };
+
+function hol(pfad){
+  return fetch(SRV + pfad, {
+    headers:{ apikey:KEY, Authorization:"Bearer " + KEY }
+  }).then(function(r){
+    if(!r.ok) return r.text().then(function(t){
+      throw new Error("HTTP " + r.status + " – " + t.slice(0,200));
+    });
+    return r.json();
+  });
+}
+
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+function proz(x){ return x == null ? "–" : (Math.round(x*10)/10).toFixed(1) + " %"; }
+function zahl(x,n){ return x == null ? "–" : Number(x).toFixed(n == null ? 1 : n); }
+var MON = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+function datumKurz(s){
+  var d = s.split("-");
+  return Number(d[2]) + ". " + MON[Number(d[1])-1] + " " + d[0];
+}
+function monatKurz(s){
+  var d = s.split("-");
+  return MON[Number(d[1])-1] + " " + d[0].slice(2);
+}
+
+/* ---------- Säulendiagramm ----------
+   Eine Reihe, viele schmale Säulen: wie oft welche Breakgröße vorkam.
+   Kein Fadenkreuz wie beim Liniendiagramm - bei sechzig Säulen träfe
+   man ohnehin die falsche. Der Wert steht im Tooltip, und darunter
+   liegt dieselbe Reihe noch einmal als Tabelle. */
+function saeulen(behaelter, punkte, opt){
+  opt = opt || {};
+  var B = 760, H = opt.hoehe || 220,
+      lo = 46, ro = 10, oo = 12, uo = 30,
+      br = B - lo - ro, ho = H - oo - uo;
+
+  if(!punkte.length){
+    behaelter.innerHTML = '<div class="laden">Keine Breaks in diesem Zeitraum.</div>';
+    return;
+  }
+
+  var hoch = 0, i;
+  for(i = 0; i < punkte.length; i++) if(punkte[i].n > hoch) hoch = punkte[i].n;
+  /* Lauter Nullen: dann lieber ein Satz als ein leeres Gitter. */
+  if(!hoch){
+    behaelter.innerHTML = '<div class="laden">Keine Breaks in diesem Zeitraum.</div>';
+    return;
+  }
+  /* Obergrenze auf eine runde Zahl, sonst steht an der Achse 4237. */
+  var stufe = Math.pow(10, Math.floor(Math.log(hoch) / Math.LN10)),
+      y1 = Math.ceil(hoch / stufe) * stufe;
+
+  var bw = br / punkte.length,
+      y = function(v){ return oo + ho - ho * v / y1; },
+      s = '<svg viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="' +
+          esc(opt.titel || "Breakgrößen") + '">', v;
+
+  /* Vier Linien, aber nie feiner als ganze Breaks - sonst staende an
+     der Achse dreimal dieselbe Zahl. */
+  var schritt = Math.max(1, Math.round(y1 / 4));
+  for(v = 0; v <= y1 + 0.001; v += schritt){
+    s += '<line class="gitter" x1="'+lo+'" x2="'+(lo+br)+'" y1="'+y(v)+'" y2="'+y(v)+'"/>';
+    s += '<text class="achse" x="'+(lo-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+
+         Math.round(v)+'</text>';
+  }
+
+  punkte.forEach(function(p, i){
+    if(!p.n) return;
+    s += '<rect class="saeule" x="'+(lo + bw*i + bw*0.12)+'" y="'+y(p.n)+
+         '" width="'+Math.max(bw*0.76, 1)+'" height="'+Math.max(ho*p.n/y1, 1)+
+         '"><title>'+esc("Break "+p.x+": "+p.n+(p.n===1?" mal":" mal"))+
+         '</title></rect>';
+  });
+
+  /* Beschriftet wird nur jede n-te Säule - sonst kleben die Zahlen. */
+  var jeder = Math.ceil(punkte.length / 25);
+  punkte.forEach(function(p, i){
+    if(i % jeder) return;
+    s += '<text class="achse" x="'+(lo + bw*i + bw/2)+'" y="'+(oo+ho+16)+
+         '" text-anchor="middle">'+esc(p.x)+'</text>';
+  });
+
+  behaelter.innerHTML = s + '</svg>';
+}
+
+/* ---------- Liniendiagramm ----------
+   Zwei Reihen, gemeinsame Achse. Nie zwei y-Skalen: beide sind Prozent,
+   also passt eine. Fadenkreuz mit Blase beim Ueberfahren. */
+function linien(behaelter, punkte, reihen, opt){
+  opt = opt || {};
+  var B = 760, H = opt.hoehe || 230,
+      lo = 44, ro = 52, oo = 12, uo = 34,
+      br = B - lo - ro, ho = H - oo - uo;
+
+  if(!punkte.length){
+    behaelter.innerHTML = '<div class="laden">Keine Daten.</div>';
+    return;
+  }
+
+  /* y-Bereich: bei Null anfangen ist die ehrliche Voreinstellung.
+     Der Knopf "Ausschnitt" zoomt auf den tatsaechlichen Bereich. */
+  var werte = [];
+  punkte.forEach(function(p){
+    reihen.forEach(function(r){ if(p[r.feld] != null) werte.push(Number(p[r.feld])); });
+  });
+  var hoch = Math.max.apply(null, werte), tief = Math.min.apply(null, werte);
+  var y0, y1;
+  if(opt.zoom){
+    var luft = Math.max(2, (hoch - tief) * 0.15);
+    y0 = Math.max(0, Math.floor((tief - luft)/5)*5);
+    y1 = Math.min(100, Math.ceil((hoch + luft)/5)*5);
+  }else{
+    y0 = 0;
+    y1 = Math.min(100, Math.ceil((hoch + 4)/10)*10);
+  }
+  if(y1 <= y0) y1 = y0 + 10;
+
+  var x = function(i){
+    return lo + (punkte.length < 2 ? br/2 : br * i / (punkte.length-1));
+  };
+  var y = function(v){ return oo + ho - ho * (v - y0) / (y1 - y0); };
+
+  var s = '<svg viewBox="0 0 '+B+' '+H+'" role="img" aria-label="'+
+          esc(opt.titel||"Verlauf")+'">';
+
+  /* Gitter, zurueckhaltend */
+  var schritt = (y1-y0) <= 30 ? 5 : 10, v;
+  for(v = y0; v <= y1 + 0.001; v += schritt){
+    s += '<line class="gitter" x1="'+lo+'" x2="'+(lo+br)+'" y1="'+y(v)+'" y2="'+y(v)+'"/>';
+    s += '<text class="achse" x="'+(lo-8)+'" y="'+(y(v)+4)+'" text-anchor="end">'+v+'</text>';
+  }
+
+  /* x-Beschriftung: hoechstens acht, sonst wird es Brei */
+  var jeder = Math.max(1, Math.ceil(punkte.length/8)), i;
+  for(i = 0; i < punkte.length; i += jeder){
+    s += '<text class="achse" x="'+x(i)+'" y="'+(oo+ho+18)+'" text-anchor="middle">'+
+         esc(punkte[i].x) + '</text>';
+  }
+
+  /* Gestrichelt: der Schnitt des gewaehlten Zeitraums, je Reihe in
+     ihrer Farbe. Das ist der echte gewichtete Schnitt aus der Bilanz,
+     nicht der Mittelwert der gezeichneten Punkte - ein Monat mit zwei
+     Matches wiegt weniger als einer mit zwanzig. */
+  if(opt.mittel){
+    reihen.forEach(function(r){
+      var w = opt.mittel[r.feld];
+      if(w == null) return;
+      w = Number(w);
+      if(w < y0 || w > y1) return;
+      s += '<line class="mittel" x1="'+lo+'" x2="'+(lo+br)+'" y1="'+y(w)+
+           '" y2="'+y(w)+'" stroke="var('+r.farbe+')"/>';
+    });
+  }
+
+  /* Linien */
+  reihen.forEach(function(r){
+    var d = "", auf = false;
+    punkte.forEach(function(p,i){
+      var w = p[r.feld];
+      if(w == null){ auf = false; return; }
+      d += (auf ? "L" : "M") + x(i).toFixed(1) + " " + y(Number(w)).toFixed(1) + " ";
+      auf = true;
+    });
+    s += '<path class="linie" d="'+d+'" stroke="var('+r.farbe+')"/>';
+  });
+
+  /* Nur der letzte Punkt bekommt eine Zahl. Ein Wert an jedem Punkt
+     waere Chaos und wuerde nicht gelesen. */
+  reihen.forEach(function(r){
+    var j = punkte.length - 1;
+    while(j >= 0 && punkte[j][r.feld] == null) j--;
+    if(j < 0) return;
+    var wy = y(Number(punkte[j][r.feld]));
+    s += '<circle class="punkt" cx="'+x(j)+'" cy="'+wy+'" r="4.5" fill="var('+r.farbe+')"/>';
+    s += '<text class="etikett" x="'+(x(j)+10)+'" y="'+(wy+4)+'">'+
+         zahl(punkte[j][r.feld]) + '</text>';
+  });
+
+  s += '<line class="marke" id="fk" x1="0" x2="0" y1="'+oo+'" y2="'+(oo+ho)+'" style="opacity:0"/>';
+  s += '<rect id="feld" x="'+lo+'" y="'+oo+'" width="'+br+'" height="'+ho+'" fill="transparent"/>';
+  s += '</svg>';
+  s += '<div class="blase"></div>';
+  behaelter.innerHTML = s;
+
+  /* Fadenkreuz */
+  var svg = behaelter.querySelector("svg"),
+      fk = behaelter.querySelector("#fk"),
+      blase = behaelter.querySelector(".blase");
+
+  function ausSicht(){ fk.style.opacity = 0; blase.style.opacity = 0; }
+
+  svg.addEventListener("mousemove", function(e){
+    var kasten = svg.getBoundingClientRect(),
+        skal = B / kasten.width,
+        mx = (e.clientX - kasten.left) * skal;
+    if(mx < lo - 10 || mx > lo + br + 10){ ausSicht(); return; }
+    var i = punkte.length < 2 ? 0
+          : Math.round((mx - lo) / br * (punkte.length - 1));
+    i = Math.max(0, Math.min(punkte.length - 1, i));
+    var p = punkte[i];
+    fk.setAttribute("x1", x(i)); fk.setAttribute("x2", x(i));
+    fk.style.opacity = 1;
+
+    var h = "<b>" + esc(p.titel || p.x) + "</b>";
+    reihen.forEach(function(r){
+      h += '<div><i style="background:var('+r.farbe+')"></i>' + esc(r.name) +
+           '<span>' + (p[r.feld] == null ? "–" : zahl(p[r.feld]) + " %") + '</span></div>';
+    });
+    if(p.zusatz) h += '<div class="leise">' + esc(p.zusatz) + '</div>';
+    blase.innerHTML = h;
+    blase.style.opacity = 1;
+    var links = x(i) / skal + 14;
+    if(links + blase.offsetWidth > kasten.width) links = x(i)/skal - blase.offsetWidth - 14;
+    blase.style.left = Math.max(0, links) + "px";
+    blase.style.top = "18px";
+  });
+  svg.addEventListener("mouseleave", ausSicht);
+}
+
+function legende(reihen){
+  return '<div class="legende">' + reihen.map(function(r){
+    return '<span><i style="background:var('+r.farbe+')"></i>' + esc(r.name) + '</span>';
+  }).join("") + '</div>';
+}
+
+var REIHEN = [
+  { name:"Zweite Bälle", feld:"posn_quote", farbe:"--serie-2" },
+  { name:"Pot-Quote",    feld:"pot_quote",  farbe:"--serie-1" }
+];
+
+/* "Auf einen Blick" zeigt zusaetzlich die Safe-Quote. Bei Form und
+   Monat bleibt es bei zwei Reihen, dort geht es um Break-Staerke. */
+var REIHEN3 = [
+  { name:"Zweite Bälle", feld:"posn_quote", farbe:"--serie-2" },
+  { name:"Pot-Quote",    feld:"pot_quote",  farbe:"--serie-1" },
+  { name:"Safe-Quote",   feld:"safe_quote", farbe:"--serie-3" }
+];
+
+/* ---------- Seite ---------- */
+var Daten = {}, spieler = null, zeitOrd = 4, zoomForm = false, zoomMonat = false,
+    monatAlle = false, zoomBlick = false;
+
+/* Die Uebersicht kennt nur "Alle Zeiten" und einzelne Jahre - 30 und 90
+   Tage sind dort zu kurz fuer eine Kurve. Die Breaks-Seite behaelt die
+   alte Auswahl, ihre Daten haengen an genau diesen vier Zeitraeumen.
+   "alle" oder eine Jahreszahl als Text. */
+var zeitWahl = "alle";
+
+/* Welche Seite gerade offen ist. Das Match-Detail liegt quer darueber und
+   kehrt beim Zurueck hierher zurueck. */
+var seite = "start";
+var SEITEN = [
+  { id:"start",  name:"Übersicht" },
+  { id:"best",   name:"Bestleistungen" },
+  { id:"breaks", name:"Breaks" }
+];
+/* Zeigt die Breakverteilung alles oder erst ab 10? Die Einer und Zweier
+   sind so viele, dass alles darüber sonst platt am Boden liegt. */
+var breaksAb10 = true;
+
+/* ---------- Klappfaecher ----------
+   Welches Fach je Gruppe offen ist. Bleibt beim Neuzeichnen stehen, also
+   auch beim Wechsel von Zeitraum oder Spieler. undefined heisst: noch
+   nichts angefasst, dann gilt der Vorschlag des Aufrufers. */
+var offen = {};
+
+function istOffen(gruppe, id, standard){
+  return offen[gruppe] === undefined ? !!standard : offen[gruppe] === id;
+}
+
+/* kopfZusatz darf HTML sein (z. B. der Punktestand eines Frames),
+   deshalb wird es hier nicht escaped - alle Aufrufer bauen es selbst. */
+function fach(gruppe, id, titel, zusatz, inhalt, standardOffen, klasse){
+  var auf = istOffen(gruppe, id, standardOffen);
+  return '<section class="fach' + (klasse ? " " + klasse : "") +
+    (auf ? " offen" : "") + '" data-gruppe="' + esc(gruppe) +
+    '" data-fach="' + esc(id) + '">' +
+    '<button class="fachkopf" type="button" aria-expanded="' +
+      (auf ? "true" : "false") + '">' +
+      '<span class="pfeil"></span>' +
+      '<span class="fachname">' + esc(titel) + '</span>' +
+      (zusatz ? '<span class="fachzusatz">' + zusatz + '</span>' : "") +
+    '</button>' +
+    '<div class="fachinhalt">' + inhalt + '</div></section>';
+}
+
+function reiterZeichnen(){
+  el("reiter").innerHTML = SEITEN.map(function(s){
+    return '<button class="reiter-k' + (s.id === seite ? " an" : "") +
+           '" data-seite="' + s.id + '">' + esc(s.name) + '</button>';
+  }).join("");
+  /* Der Zeitraum gilt auf der Uebersicht und bei den Breaks.
+     Bestleistungen sind immer ueber alle Zeiten - wie "My Personal
+     Bests". */
+  var w = el("wZeit");
+  w.style.display = (seite === "start" || seite === "breaks") ? "" : "none";
+  zeitwahlFuellen();
+}
+
+/* Zwei verschiedene Listen im selben Auswahlfeld: die Uebersicht will
+   Jahre, die Breaks-Seite die vier festen Zeitraeume. */
+function zeitwahlFuellen(){
+  var w = el("wZeit"), h;
+  if(seite === "breaks"){
+    h = Daten.zeitraum.map(function(z){
+      return '<option value="' + z.ord + '"' +
+             (z.ord === zeitOrd ? " selected" : "") + '>' +
+             esc(z.zeitraum) + '</option>';
+    }).join("");
+  }else{
+    var jahre = Daten.jahr.map(function(j){ return Number(j.jahr); })
+                  .sort(function(a,b){ return b - a; });
+    h = '<option value="alle"' + (zeitWahl === "alle" ? " selected" : "") +
+        '>Alle Zeiten</option>' +
+        jahre.map(function(j){
+          return '<option value="' + j + '"' +
+                 (String(j) === zeitWahl ? " selected" : "") + '>' + j +
+                 '</option>';
+        }).join("");
+  }
+  if(w.getAttribute("data-liste") !== seite || w.innerHTML === ""){
+    w.innerHTML = h;
+    w.setAttribute("data-liste", seite === "breaks" ? "breaks" : "start");
+  }
+}
+
+/* Der Name des gewaehlten Zeitraums, fuer Ueberschriften. */
+function zeitName(){
+  return zeitWahl === "alle" ? "Alle Zeiten" : zeitWahl;
+}
+
+/* Die Zahlenreihe zum gewaehlten Zeitraum: entweder die Zeile "Alle
+   Zeiten" oder die des Jahres. Beide Sichten liefern dieselben Felder. */
+function zeitZeile(){
+  if(zeitWahl === "alle"){
+    return Daten.zeitraum.filter(function(r){ return r.ord === 4; })[0];
+  }
+  return Daten.jahr.filter(function(r){
+    return String(r.jahr) === zeitWahl;
+  })[0];
+}
+
+/* Die Punkte der Blick-Kurve: Quartale bei "Alle Zeiten", sonst die
+   Monate des Jahres. */
+function blickPunkte(){
+  if(zeitWahl === "alle"){
+    return (Daten.quartal || []).map(function(q){
+      var j = q.quartal.split("-"), nr = Math.floor((Number(j[1]) - 1) / 3) + 1;
+      return {
+        x: "Q" + nr + " " + j[0].slice(2),
+        titel: nr + ". Quartal " + j[0],
+        zusatz: q.matches + " Matches, " + q.frames + " Frames",
+        posn_quote: q.posn_quote, pot_quote: q.pot_quote,
+        safe_quote: q.safe_quote
+      };
+    });
+  }
+  return (Daten.monat || []).filter(function(m){
+    return m.monat.slice(0,4) === zeitWahl;
+  }).map(function(m){
+    return {
+      x: MON[Number(m.monat.split("-")[1]) - 1],
+      titel: monatKurz(m.monat),
+      zusatz: m.matches + " Matches, " + m.frames + " Frames",
+      posn_quote: m.posn_quote, pot_quote: m.pot_quote,
+      safe_quote: m.safe_quote
+    };
+  });
+}
+
+function tabelleAusDaten(punkte, reihen, kopf){
+  var h = '<div class="rollen tabelle-aus"><table><thead><tr><th class="text">'+
+          esc(kopf)+'</th>' +
+          reihen.map(function(r){ return '<th>'+esc(r.name)+'</th>'; }).join("") +
+          '</tr></thead><tbody>';
+  punkte.forEach(function(p){
+    h += '<tr><td class="text">' + esc(p.titel || p.x) + '</td>' +
+         reihen.map(function(r){
+           return '<td>' + (p[r.feld]==null ? "–" : zahl(p[r.feld])+" %") + '</td>';
+         }).join("") + '</tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+function zeichne(){
+  var z = zeitZeile();
+  var jahre = Daten.jahr;
+
+  var G = "seite-start";
+
+  /* --- Auf einen Blick ---
+     Drei Kacheln und darunter dieselben drei Zahlen als Kurve. Teiler
+     sind die Quartale ueber alle Zeiten und die Monate im Jahr. */
+  var k = '<div class="kacheln">';
+  k += kachel("Zweite Bälle", proz(z && z.posn_quote),
+              z ? z.matches + " Matches, " + z.frames + " Frames" : "",
+              "--serie-2");
+  k += kachel("Pot-Quote", proz(z && z.pot_quote), "", "--serie-1");
+  k += kachel("Safe-Quote", proz(z && z.safe_quote),
+              z && z.bestes_break ? "bestes Break " + z.bestes_break : "",
+              "--serie-3");
+  k += '</div>';
+  var bPunkte = blickPunkte();
+  k += '<div class="tafel">' + legende(REIHEN3) + '<div id="dBlick"></div></div>' +
+       tabelleAusDaten(bPunkte, REIHEN3,
+                       zeitWahl === "alle" ? "Quartal" : "Monat") +
+       '<div class="knopfzeile">' +
+         '<button class="knopf" data-tun="zoomBlick">' +
+           (zoomBlick ? "Bei Null beginnen" : "Ausschnitt zeigen") + '</button>' +
+         '<button class="knopf" data-tun="tabBlick">Tabelle</button>' +
+       '</div>';
+  var h = fach(G, "blick", "Auf einen Blick", esc(zeitName()), k, true);
+
+  /* --- Formkurve --- */
+  var letzte = Daten.matches.slice(0, 20).slice().reverse().map(function(m){
+    return {
+      x: datumKurz(m.datum).replace(/ \d{4}$/,""),
+      titel: datumKurz(m.datum) + " gegen " + m.gegner,
+      zusatz: m.frames_eigen + "–" + m.frames_gegen + " · " +
+              m.pos_hit + "/" + m.pos_try + " zweite Bälle",
+      posn_quote: m.posn_quote, pot_quote: m.pot_quote
+    };
+  });
+  h += fach(G, "form", "Form", "die letzten " + letzte.length + " Matches",
+       '<div class="tafel">' + legende(REIHEN) + '<div id="dForm"></div></div>' +
+       tabelleAusDaten(letzte, REIHEN, "Match") +
+       '<div class="knopfzeile">' +
+         '<button class="knopf" data-tun="zoomForm">' +
+           (zoomForm ? "Bei Null beginnen" : "Ausschnitt zeigen") + '</button>' +
+         '<button class="knopf" data-tun="tabForm">Tabelle</button>' +
+       '</div>');
+
+  /* --- Monatskurve --- */
+  var mon = Daten.monat.slice();
+  if(monatAlle === false) mon = mon.slice(-24);
+  var mPunkte = mon.map(function(m){
+    return {
+      x: monatKurz(m.monat),
+      titel: monatKurz(m.monat),
+      zusatz: m.matches + " Matches, " + m.posn_versuche + " zweite Bälle",
+      posn_quote: m.posn_quote, pot_quote: m.pot_quote
+    };
+  });
+  h += fach(G, "monat", "Monat für Monat",
+       (monatAlle ? "alles seit Juli 2019" : "die letzten 24 Monate"),
+       '<div class="tafel">' + legende(REIHEN) + '<div id="dMonat"></div></div>' +
+       tabelleAusDaten(mPunkte, REIHEN, "Monat") +
+       '<div class="knopfzeile">' +
+         '<button class="knopf" data-tun="monatAlle">' +
+           (monatAlle ? "Letzte 24 Monate" : "Alles zeigen") + '</button>' +
+         '<button class="knopf" data-tun="zoomMonat">' +
+           (zoomMonat ? "Bei Null beginnen" : "Ausschnitt zeigen") + '</button>' +
+         '<button class="knopf" data-tun="tabMonat">Tabelle</button>' +
+       '</div>');
+
+  /* --- Zeitraum-Tabelle --- */
+  var t = '<div class="rollen"><table><thead><tr>' +
+       '<th class="text">Zeitraum</th><th>Matches</th><th>gewonnen</th>' +
+       '<th>Frames</th><th>gewonnen</th><th>Zweite Bälle</th><th>Pot</th>' +
+       '<th>Safes/Frame</th><th>Foulp./Frame</th><th>Bestes Break</th>' +
+       '</tr></thead><tbody>';
+  Daten.zeitraum.forEach(function(r){ t += bilanzZeile(r.zeitraum, r); });
+  jahre.forEach(function(r){ t += bilanzZeile(String(r.jahr), r, true); });
+  h += fach(G, "bilanz", "Bilanz", "", t + '</tbody></table></div>');
+
+  /* --- Matchliste --- */
+  t = '<div class="rollen"><table><thead><tr>' +
+       '<th class="text">Datum</th><th class="text">Gegner</th><th>Ergebnis</th>' +
+       '<th>Zweite Bälle</th><th>Pot</th><th>Bestes Break</th><th>Rote</th>' +
+       '</tr></thead><tbody>';
+  Daten.matches.slice(0,50).forEach(function(m){
+    var gew = m.frames_eigen > m.frames_gegen,
+        gleich = m.frames_eigen === m.frames_gegen;
+    t += '<tr class="klickbar" data-match="' + esc(m.match_id) +
+         '" data-sp="' + m.sp + '">' +
+         '<td class="text">' + esc(datumKurz(m.datum)) + '</td>' +
+         '<td class="text">' + esc(m.gegner) + '</td>' +
+         '<td class="' + (gleich ? "" : gew ? "sieg" : "pleite") + '">' +
+         m.frames_eigen + '–' + m.frames_gegen + '</td>' +
+         '<td>' + proz(m.posn_quote) + ' <span class="leise">(' +
+           m.pos_hit + '/' + m.pos_try + ')</span></td>' +
+         '<td>' + proz(m.pot_quote) + ' <span class="leise">(' +
+           m.pots + '/' + m.pot_try + ')</span></td>' +
+         '<td>' + (m.hi_brk || "–") + '</td>' +
+         '<td class="leise">' + (m.rote == null ? "?" : m.rote) + '</td></tr>';
+  });
+  h += fach(G, "matches", "Matches", "die letzten 50",
+            t + '</tbody></table></div>');
+
+  h += '<div class="hinweis">' +
+    'Zweite Bälle: nach einem gelochten Ball fällt auch der nächste Ball derselben ' +
+    'Aufnahme. Das ist das Maß für Break-Stärke, nicht die Pot-Quote.<br>' +
+    'Safe-Quote: ein Safe hat gehalten, wenn der Gegner danach nicht gepunktet ' +
+    'hat – ein Fluke zählt nicht dagegen. So rechnet der neue Zähler seit dem ' +
+    '2. September 2026. Bei den Altdaten steht in derselben Spalte die ' +
+    'Safe-Trefferquote der alten Seite; wie die gerechnet wurde, ist nicht ' +
+    'überliefert. Die beiden Zahlen sind also nur ungefähr dasselbe.<br>' +
+    '„Rote“ steht bei den Altdaten auf ?, dort wurde die Zahl nie erfasst.' +
+    '</div>';
+
+  el("inhalt").innerHTML = h;
+  linien(el("dBlick"), bPunkte, REIHEN3,
+         {zoom:zoomBlick, titel:"Auf einen Blick", mittel:z || {}});
+  linien(el("dForm"),  letzte,  REIHEN, {zoom:zoomForm,  titel:"Form"});
+  linien(el("dMonat"), mPunkte, REIHEN, {zoom:zoomMonat, titel:"Monat für Monat"});
+}
+
+function kachel(was, zahlText, roh, farbe){
+  return '<div class="kachel' + (farbe ? ' farbig" style="--ton:var(' +
+           farbe + ')' : '"') + '"><div class="was">' + esc(was) + '</div>' +
+         '<div class="zahl">' + esc(zahlText) + '</div>' +
+         '<div class="roh">' + esc(roh || "") + '</div></div>';
+}
+
+function bilanzZeile(name, r, leise){
+  return '<tr><td class="text' + (leise ? " leise" : "") + '">' + esc(name) + '</td>' +
+    '<td>' + (r.matches == null ? "–" : r.matches) + '</td>' +
+    '<td>' + (r.matches_gewonnen == null ? "–" : r.matches_gewonnen) + '</td>' +
+    '<td>' + r.frames + '</td>' +
+    '<td>' + r.frames_gewonnen + '</td>' +
+    '<td>' + proz(r.posn_quote) + '</td>' +
+    '<td>' + proz(r.pot_quote) + '</td>' +
+    '<td>' + (r.safes_je_frame == null ? "–" : zahl(r.safes_je_frame)) + '</td>' +
+    '<td>' + (r.fpts_je_frame  == null ? "–" : zahl(r.fpts_je_frame))  + '</td>' +
+    '<td>' + (r.bestes_break || "–") + '</td></tr>';
+}
+
+/* ---------- Bestleistungen ----------
+   Entspricht "My Personal Bests" dort, plus drei Zeilen, die es dort
+   nicht gibt: laengste Ballserie, hoechster Framestand, groesster
+   gedrehter Rueckstand. Immer ueber alle Zeiten. */
+
+function zeileAuf(m, sp, inhalt){
+  return '<tr class="klickbar" data-match="' + esc(m) + '" data-sp="' + sp +
+         '">' + inhalt + '</tr>';
+}
+
+function tafelTabelle(id, titel, zusatz, kopf, zeilen, leerText, standardOffen){
+  var inhalt = zeilen.length
+    ? '<div class="rollen"><table><thead><tr>' + kopf +
+      '</tr></thead><tbody>' + zeilen.join("") + '</tbody></table></div>'
+    : '<div class="hinweis">' + esc(leerText) + '</div>';
+  return fach("seite-best", id, titel, esc(zusatz), inhalt, standardOffen);
+}
+
+function bestZeichnen(){
+  var b = Daten.best;
+
+  var h = tafelTabelle("breaks", "Top 10 Breaks", "alle Zeiten",
+    '<th class="text">Datum</th><th class="text">Gegner</th><th>Break</th>' +
+    '<th class="text">Kugeln</th>',
+    b.breaks.map(function(r){
+      return zeileAuf(r.match_id, r.sp,
+        '<td class="text">' + esc(datumKurz(r.datum)) + '</td>' +
+        '<td class="text">' + esc(r.gegner) + '</td>' +
+        '<td><b>' + r.punkte + '</b></td>' +
+        '<td class="text"><span class="baelle">' +
+          (r.baelle || []).map(ball).join("") + '</span></td>');
+    }),
+    "Noch keine Breaks aufgezeichnet.", true);
+
+  h += tafelTabelle("matches", "Top 10 Matches", "nach Zweiten Bällen, ab 30 Versuchen",
+    '<th class="text">Datum</th><th class="text">Gegner</th><th>Ergebnis</th>' +
+    '<th>Zweite Bälle</th><th>Pot</th><th>Bestes Break</th>',
+    b.matches.map(function(m){
+      var gew = m.frames_eigen > m.frames_gegen,
+          gleich = m.frames_eigen === m.frames_gegen;
+      return zeileAuf(m.match_id, m.sp,
+        '<td class="text">' + esc(datumKurz(m.datum)) + '</td>' +
+        '<td class="text">' + esc(m.gegner) + '</td>' +
+        '<td class="' + (gleich ? "" : gew ? "sieg" : "pleite") + '">' +
+          m.frames_eigen + '–' + m.frames_gegen + '</td>' +
+        '<td><b>' + proz(m.posn_quote) + '</b> <span class="leise">(' +
+          m.pos_hit + '/' + m.pos_try + ')</span></td>' +
+        '<td>' + proz(m.pot_quote) + '</td>' +
+        '<td>' + (m.hi_brk || "–") + '</td>');
+    }),
+    "Noch kein Match mit 30 Versuchen bei den Zweiten Bällen.");
+
+  h += tafelTabelle("serie", "Meiste Bälle am Stück", "alle Zeiten",
+    '<th class="text">Datum</th><th class="text">Gegner</th><th>Bälle</th>' +
+    '<th>Punkte</th><th class="text">Kugeln</th>',
+    b.serie.map(function(r){
+      return zeileAuf(r.match_id, r.sp,
+        '<td class="text">' + esc(datumKurz(r.datum)) + '</td>' +
+        '<td class="text">' + esc(r.gegner) + '</td>' +
+        '<td><b>' + r.baelle_n + '</b></td>' +
+        '<td>' + r.punkte + '</td>' +
+        '<td class="text"><span class="baelle">' +
+          (r.baelle || []).map(ball).join("") + '</span></td>');
+    }),
+    "Noch keine Bälle aufgezeichnet.");
+
+  h += tafelTabelle("hoch", "Höchste Framestände", "eigene Punkte in einem Frame",
+    '<th class="text">Datum</th><th class="text">Gegner</th><th>Frame</th>' +
+    '<th>Punkte</th><th>Bestes Break</th>',
+    b.hoch.map(function(f){
+      return zeileAuf(f.match_id, f.sp,
+        '<td class="text">' + esc(datumKurz(f.datum)) + '</td>' +
+        '<td class="text">' + esc(f.gegner) + '</td>' +
+        '<td>' + f.nr + '</td>' +
+        '<td><b>' + f.punkte + '</b> <span class="leise">gegen ' +
+          f.punkte_gegen + '</span></td>' +
+        '<td>' + (f.hi_brk || "–") + '</td>');
+    }),
+    "Noch keine Frames.");
+
+  h += tafelTabelle("comeback", "Gedrehte Rückstände", "im Frame-Stand zurückgelegen und gewonnen",
+    '<th class="text">Datum</th><th class="text">Gegner</th>' +
+    '<th>Rückstand</th><th>Endstand</th>',
+    b.comeback.map(function(c){
+      return zeileAuf(c.match_id, c.sp,
+        '<td class="text">' + esc(datumKurz(c.datum)) + '</td>' +
+        '<td class="text">' + esc(c.gegner) + '</td>' +
+        '<td><b>' + c.rueckstand + ' Frame' + (c.rueckstand === 1 ? "" : "s") +
+          '</b></td>' +
+        '<td class="sieg">' + c.frames_eigen + '–' + c.frames_gegen + '</td>');
+    }),
+    "Noch kein Match, in dem ein Rückstand gedreht wurde.");
+
+  h += '<div class="hinweis">' +
+    'Die Top-10-Matches gehen nach Zweiten Bällen, nicht nach der Pot-Quote – ' +
+    'dasselbe misst „Top 10 Performances“ bei MySnookerStats. Die Grenze von ' +
+    '30 Versuchen hält einzelne Frames draußen; mit zehn Versuchen steht sonst ' +
+    'jeder Ausreißer oben.<br>' +
+    '„Meiste Bälle am Stück“ zählt die Bälle eines Breaks, nicht die Punkte. ' +
+    'Ein Break ist genau eine ununterbrochene Folge gelochter Bälle – dreizehn ' +
+    'Rote und Farben können also weniger Punkte bringen als ein kurzes Break ' +
+    'mit Schwarzen.' +
+    '</div>';
+
+  el("inhalt").innerHTML = h;
+}
+
+/* ---------- Breaks ----------
+   Zwei Fragen: wie oft kommt welche Breakgröße vor (bei MySnookerStats
+   „Hot Breaks"), und wie viele Frames vergehen bis zu einem Break ab 10,
+   20, 30 … („My Break Power"). Beides je Zeitraum, deshalb bleibt die
+   Zeitraum-Auswahl oben sichtbar. */
+function breaksZeichnen(){
+  var G = "seite-breaks",
+      vt = Daten.bverteilung.filter(function(r){ return r.ord === zeitOrd; }),
+      pw = Daten.bpower.filter(function(r){ return r.ord === zeitOrd; }),
+      z  = Daten.zeitraum.filter(function(r){ return r.ord === zeitOrd; })[0],
+      zName = z ? z.zeitraum : "";
+
+  vt = vt.slice().sort(function(a,b){ return a.punkte - b.punkte; });
+  pw = pw.slice().sort(function(a,b){ return a.schwelle - b.schwelle; });
+
+  var gesamt = 0, punkteSumme = 0, bestes = 0, ab10 = 0, ab50 = 0;
+  vt.forEach(function(r){
+    var n = Number(r.anzahl);
+    gesamt += n;
+    punkteSumme += n * r.punkte;
+    if(r.punkte > bestes) bestes = r.punkte;
+    if(r.punkte >= 10) ab10 += n;
+    if(r.punkte >= 50) ab50 += n;
+  });
+
+  var k = '<div class="kacheln">';
+  k += kachel("Breaks", gesamt ? String(gesamt) : "–",
+              z ? z.frames + " Frames" : "");
+  k += kachel("Punkte je Break", gesamt ? zahl(punkteSumme/gesamt) : "–", "");
+  k += kachel("Breaks ab 10", ab10 ? String(ab10) : "–",
+              gesamt ? proz(ab10*100/gesamt) + " aller Breaks" : "");
+  k += kachel("Bestes Break", bestes ? String(bestes) : "–",
+              ab50 ? ab50 + " mal 50 oder mehr" : "");
+  k += '</div>';
+  var h = fach(G, "blick", "Auf einen Blick", esc(zName), k, true);
+
+  /* --- Verteilung --- */
+  var ab = breaksAb10 ? 10 : 1,
+      hoechste = bestes || ab,
+      reihe = [], i, treffer = {};
+  vt.forEach(function(r){ treffer[r.punkte] = Number(r.anzahl); });
+  /* Auch die Lücken bekommen eine Stelle - sonst rutscht die Achse und
+     ein 47er stünde neben einem 52er, als lägen sie nebeneinander. */
+  for(i = ab; i <= hoechste; i++) reihe.push({ x:i, n:treffer[i] || 0 });
+
+  var tab = '<div class="rollen tabelle-aus"><table><thead><tr>' +
+            '<th class="text">Break</th><th>Anzahl</th><th>Anteil</th>' +
+            '</tr></thead><tbody>';
+  vt.slice().reverse().forEach(function(r){
+    tab += '<tr><td class="text">' + r.punkte + '</td><td>' + r.anzahl +
+           '</td><td>' + (gesamt ? proz(r.anzahl*100/gesamt) : "–") + '</td></tr>';
+  });
+  tab += '</tbody></table></div>';
+
+  h += fach(G, "verteilung", "Wie oft welches Break",
+       esc(breaksAb10 ? "ab 10 Punkten" : "alle Breaks"),
+       '<div class="tafel"><div id="dBreaks"></div></div>' + tab +
+       '<div class="knopfzeile">' +
+         '<button class="knopf" data-tun="breaksAlle">' +
+           (breaksAb10 ? "Auch die kleinen" : "Erst ab 10") + '</button>' +
+         '<button class="knopf" data-tun="tabBreaks">Tabelle</button>' +
+       '</div>', true);
+
+  /* --- Break-Power --- */
+  var t = '<div class="rollen"><table><thead><tr>' +
+          '<th class="text">Break ab</th><th>Wie viele</th>' +
+          '<th>Alle wie viel Frames</th></tr></thead><tbody>';
+  pw.forEach(function(r){
+    if(!r.breaks && r.schwelle > 30) return;   /* leere Zeilen unten weg */
+    t += '<tr><td class="text">' + r.schwelle + '</td><td>' + r.breaks +
+         '</td><td>' + (r.frames_je_break == null ? "–"
+                        : zahl(r.frames_je_break) + " Frames") + '</td></tr>';
+  });
+  t += '</tbody></table></div>';
+  h += fach(G, "power", "Wie lange bis zu einem großen Break",
+            esc(z ? z.frames + " Frames im Zeitraum" : ""),
+            t + '<div class="hinweis">Gelesen als: „im Schnitt alle so viele ' +
+            'Frames kommt ein Break dieser Größe". Bei MySnookerStats heißt ' +
+            'das My Break Power.</div>');
+
+  h += '<div class="hinweis">' +
+    'Ein „Break" ist hier jede Aufnahme mit Punkten – auch eine einzelne ' +
+    'gelochte Rote zählt als Break von 1. Deshalb steht die Verteilung ' +
+    'voreingestellt erst ab 10: die Einer und Zweier sind so zahlreich, dass ' +
+    'daneben alles andere platt am Boden läge.<br>' +
+    'Getrennt nach 6, 10 und 15 Roten wird noch nicht: in den Altdaten steht ' +
+    'die Zahl der Roten nirgends, und aus dem neuen Zähler liegen dafür noch ' +
+    'zu wenige Matches vor.' +
+    '</div>';
+
+  el("inhalt").innerHTML = h;
+  saeulen(el("dBreaks"), reihe, { titel:"Wie oft welches Break" });
+}
+
+function breaksLaden(){
+  el("inhalt").innerHTML = '<div class="laden">Breaks werden geholt …</div>';
+  var q = "spieler=eq." + encodeURIComponent(spieler);
+  Promise.all([
+    hol("v_break_verteilung?" + q + "&order=ord,punkte"),
+    hol("v_break_power?" + q + "&order=ord,schwelle")
+  ]).then(function(r){
+    Daten.bverteilung = r[0]; Daten.bpower = r[1];
+    if(seite === "breaks") breaksZeichnen();
+  }).catch(zeigFehler);
+}
+
+function bestLaden(){
+  el("inhalt").innerHTML = '<div class="laden">Bestleistungen werden geholt …</div>';
+  var q = "spieler=eq." + encodeURIComponent(spieler);
+  Promise.all([
+    hol("a_break?" + q + "&order=punkte.desc,datum.desc&limit=10"),
+    hol("v_bestenliste?" + q + "&order=posn_quote.desc,pos_try.desc&limit=10"),
+    hol("v_ballserie?" + q +
+        "&order=baelle_n.desc,punkte.desc,datum.desc&limit=10"),
+    hol("a_frame?" + q + "&order=punkte.desc,punkte_gegen.asc&limit=10"),
+    hol("v_comeback?" + q + "&order=rueckstand.desc,datum.desc&limit=10")
+  ]).then(function(r){
+    Daten.best = { breaks:r[0], matches:r[1], serie:r[2], hoch:r[3], comeback:r[4] };
+    if(seite === "best") bestZeichnen();
+  }).catch(zeigFehler);
+}
+
+/* ---------- Ein einzelnes Match ----------
+   Der Verlauf kommt aus zwei Quellen. Neue Matches liegen komplett als
+   jsonb in matches.daten - da steht das Protokoll so drin, wie der
+   Zaehler es geschrieben hat, mit Safes und Fehlversuchen. Altmatches
+   gibt es dort nicht, bei ihnen werden Breaks und Fouls aus den flachen
+   Tabellen zusammengesetzt. Die alte Seite kannte nichts anderes. */
+
+function ball(b){
+  var k = "b b" + b.w + (b.frei ? " frei" : "") + (b.long ? " lang" : "");
+  return '<i class="' + k + '">' + b.w + '</i>';
+}
+function breakZeile(sp, namen, baelle, punkte, anstoss){
+  return '<div class="zeile p' + sp + '">' +
+    '<span class="wer">' + esc(namen[sp]) + (anstoss ? " ⦿" : "") + '</span>' +
+    '<span class="baelle">' + baelle.map(ball).join("") + '</span>' +
+    '<span class="summe">' + punkte + '</span></div>';
+}
+function textZeile(sp, text, art, name){
+  return '<div class="zeile ' + (sp == null ? "ruhig" : "p" + sp + " " + (art||"")) +
+    '"><span class="wer">' + esc(name || "") + '</span>' +
+    '<span class="baelle">' + esc(text) + '</span>' +
+    '<span class="summe"></span></div>';
+}
+
+function detailZeichnen(d){
+  var a = d.seiten[0], b = d.seiten[1];          /* sp 0 und sp 1 */
+  var namen = [a.spieler, b.spieler];
+  var eigen = d.sp;                              /* aus wessen Sicht geklickt */
+
+  var h = '<div class="knopfzeile" style="justify-content:flex-start">' +
+          '<button class="zurueck" data-tun="zurueck">← Zurück zu ' +
+          esc(SEITEN.filter(function(s){ return s.id === seite; })[0].name) +
+          '</button></div>';
+
+  h += '<div class="kopfzeile"><span class="ergebnis">' +
+       esc(namen[0]) + ' <b>' + a.frames_eigen + '–' + a.frames_gegen + '</b> ' +
+       esc(namen[1]) + '</span>' +
+       '<span class="gegen">' + esc(datumKurz(a.datum)) +
+       (a.rote != null ? ' · ' + a.rote + ' Rote' : '') +
+       (a.liga_id ? ' · Meisterschaft' : '') +
+       ' · ' + ({alt:"Altdaten", tablet:"aus dem Tablet"}[a.quelle] || "Zähler") +
+       '</span></div>';
+
+  /* --- Zahlen des Matches, beide Seiten --- */
+  var t = "";
+  if(a.quelle === "alt" || a.quelle === "tablet"){
+    var wer = a.konto ? namen[0] : b.konto ? namen[1] : null;
+    t += '<div class="warnung">' + (wer
+      ? '<b>Quoten nicht über Kreuz vergleichen.</b> Den letzten Stoß einer ' +
+        'Aufnahme trägt jeder Spieler selbst ein – nur er weiß, ob der ' +
+        'Versuch als Shot to Nothing gedacht war oder einfach danebenging. ' +
+        'Eine eigene Kategorie dafür gibt es nicht, er landet also entweder ' +
+        'bei „Safety“ oder bei „nicht gelocht“. Über alle Altdaten liegt der ' +
+        'Safety-Anteil bei ' + esc(wer) + ' höher als auf der Gegenseite ' +
+        '(43,4 % gegen 37,9 % der Stöße) – das kann an der Spielweise liegen ' +
+        'oder an der Einschätzung. Die <b>getroffenen</b> Bälle stimmen auf ' +
+        'beiden Seiten.'
+      : '<b>Fremdpartie.</b> Hier hat keiner der beiden für sich selbst ' +
+        'gezählt. Untereinander sind die Zahlen stimmig, mit den eigenen ' +
+        'Matches aber nicht ohne Weiteres vergleichbar.') + '</div>';
+  }
+  t += '<div class="duell">';
+  t += '<div class="dnamen"><div><i style="background:var(--serie-1)"></i>' +
+       esc(namen[0]) + '</div><div>' + esc(namen[1]) +
+       '<i style="background:var(--serie-2);margin:0 0 0 6px"></i></div></div>';
+  t += duellZeile("Zweite Bälle", a, b, "posn_quote", "pos_hit", "pos_try");
+  t += duellZeile("Pot-Quote",    a, b, "pot_quote",  "pots",    "pot_try");
+  t += duellZeile("Long Pots",    a, b, null,         "long_hit","long_try");
+  if(a.flukes != null) t += duellRoh("davon Flukes", a.flukes, b.flukes);
+  t += duellRoh("Höchstes Break", a.hi_brk, b.hi_brk);
+  t += duellRoh("Safes", a.safes, b.safes);
+  if(a.snooks != null || b.snooks != null){
+    t += duellRoh("davon mit Snooker", a.snooks, b.snooks);
+    t += duellRoh("Snooker brachte Foul", a.snook_won, b.snook_won);
+  }
+  if(a.safes_gut != null) t += duellZeile("Safe-Quote", a, b, "safe_quote", "safes_gut", "safes");
+  t += duellRoh("Fouls", a.fouls, b.fouls);
+  if(a.fouls_snk != null) t += duellRoh("davon aus dem Snooker", a.fouls_snk, b.fouls_snk);
+  t += duellRoh("Foulpunkte abgegeben", a.fpts, b.fpts);
+  if(a.stoss_zeit_s != null)
+    t += duellRoh("Stoßzeit", zahl(a.stoss_zeit_s) + " s", zahl(b.stoss_zeit_s) + " s");
+  if(a.tisch_zeit_pct != null)
+    t += duellRoh("Tischzeit", zahl(a.tisch_zeit_pct) + " %", zahl(b.tisch_zeit_pct) + " %");
+  t += '</div>';
+  h += fach("detail", "ganz", "Das ganze Match", "", t, true);
+
+  /* --- Frame für Frame --- */
+  var proFrame = {}, hatZahlen = false;
+  d.frames.forEach(function(f){
+    (proFrame[f.nr] = proFrame[f.nr] || [])[f.sp] = f;
+    if(f.pots != null) hatZahlen = true;
+  });
+  var nrs = Object.keys(proFrame).map(Number).sort(function(x,y){ return x-y; });
+
+  t = '<div class="rollen"><table><thead><tr>' +
+       '<th class="text">Frame</th><th>Punkte</th><th class="text">Gewinner</th>' +
+       '<th class="text">Anstoß</th><th>Dauer</th><th>Bestes Break</th>' +
+       (hatZahlen ? '<th>Zweite Bälle</th><th>Pot</th><th>Safes</th><th>Fouls</th>' : '') +
+       '</tr></thead><tbody>';
+  nrs.forEach(function(nr){
+    var f0 = proFrame[nr][0], f1 = proFrame[nr][1];
+    var g = f0.gewonnen === true ? namen[0] : f1.gewonnen === true ? namen[1]
+          : f0.annulliert ? "annulliert" : f0.unvollstaendig ? "abgebrochen" : "–";
+    t += '<tr><td class="text">' + nr + '</td>' +
+      '<td>' + f0.punkte + '–' + f1.punkte + '</td>' +
+      '<td class="text' + (g===namen[0]||g===namen[1] ? "" : " leise") + '">' + esc(g) + '</td>' +
+      '<td class="text leise">' + esc(f0.anstoss === true ? namen[0]
+                                   : f1.anstoss === true ? namen[1] : "?") + '</td>' +
+      '<td>' + (f0.dauer_s ? Math.round(f0.dauer_s/60) + " min" : "–") + '</td>' +
+      '<td>' + Math.max(f0.hi_brk||0, f1.hi_brk||0) + '</td>' +
+      (hatZahlen
+        ? '<td>' + quote(f0.pos_hit,f0.pos_try) + ' <span class="leise">/</span> ' +
+              quote(f1.pos_hit,f1.pos_try) + '</td>' +
+          '<td>' + quote(f0.pots,f0.pots+f0.nicht_gelocht) + ' <span class="leise">/</span> ' +
+              quote(f1.pots,f1.pots+f1.nicht_gelocht) + '</td>' +
+          '<td>' + f0.safes + ' <span class="leise">/</span> ' + f1.safes + '</td>' +
+          '<td>' + f0.fouls + ' <span class="leise">/</span> ' + f1.fouls + '</td>'
+        : '') +
+      '</tr>';
+  });
+  h += fach("detail", "frames", "Frame für Frame", "" + nrs.length + " Frames",
+            t + '</tbody></table></div>');
+
+  /* --- Protokoll ---
+     Jeder Frame ist hier ein eigenes Fach in der Gruppe "verlauf". Die
+     Gruppe ist eine andere als die der drei Hauptfaecher, deshalb bleibt
+     "Verlauf" offen, wenn man von Frame zu Frame springt. */
+  /* Drei Faelle: der Zaehler hat alles, die Altdaten haben nur punktende
+     Stoesse, und aus den elf Matches der Tablet-Datei liess sich gar kein
+     Verlauf lesen. */
+  var vZusatz = d.roh ? "Zahlen je Frame, Stoßverlauf zum Aufklappen"
+      : a.quelle === "tablet" ? "Stoßverlauf aus der Tablet-Datei nicht lesbar"
+      : "Breaks und Fouls – mehr steht in den Altdaten nicht";
+  var vHinweis = d.roh
+      ? 'Im Stoßverlauf stehen Breaks und Fouls – also alles, was den Stand ' +
+        'geändert hat. Safes und Fehlversuche fehlen dort mit Absicht: sie ' +
+        'machen die Liste lang, ohne etwas zu erzählen, was nicht schon in ' +
+        'den Zahlen darüber steht.<br>' +
+        '⦿ heißt Anstoß. Ein gepunkteter Ring um eine Kugel ist ein Free Ball, ' +
+        'ein oranger Ring ein Long Pot.'
+      : a.quelle === "tablet"
+      ? 'Diese Partie stammt aus der Sicherung des alten Tablets. Der ' +
+        'Stoß-für-Stoß-Verlauf steckt dort in einer Kurzschrift, die sich ' +
+        'nicht sicher entziffern ließ – übernommen wurde nur, was ' +
+        'nachprüfbar war. Die Zahlen des Matches und der Frames stehen oben.'
+      : '⦿ heißt Anstoß. Ein gepunkteter Ring um eine Kugel ist ein Free Ball, ' +
+        'ein oranger Ring ein Long Pot.<br>Safes und Fehlversuche fehlen: die ' +
+        'alte Seite hat nur punktende Stöße aufgelistet. Deshalb steht je Frame ' +
+        'keine Pot-Quote – der Nenner fehlt. Gelochte Bälle und zweite Bälle ' +
+        'sind dagegen aus dem Verlauf gezählt und stimmen mit den Match-Summen ' +
+        'auf 0,2 bzw. 0,3 % überein.';
+  h += fach("detail", "verlauf", "Verlauf", vZusatz,
+       protokoll(d, namen, proFrame, nrs) +
+       '<div class="hinweis">' + vHinweis + '</div>');
+
+  el("inhalt").innerHTML = h;
+  window.scrollTo(0,0);
+}
+
+function quote(t,v){ return v ? Math.round(t*100/v) + " %" : "–"; }
+
+function duellZeile(name, a, b, qf, tf, vf){
+  /* Nicht erfasst ist etwas anderes als null - dann bleibt die Zeile leer,
+     statt "(null/null)" zu zeigen. */
+  function teil(o){
+    if(o[vf] == null || o[tf] == null) return {q:"–", roh:""};
+    return { q: qf ? proz(o[qf]) : (o[vf] ? Math.round(o[tf]*100/o[vf]) + " %" : "–"),
+             roh: '<em>(' + o[tf] + '/' + o[vf] + ')</em>' };
+  }
+  var l = teil(a), r = teil(b);
+  return '<div class="dz"><span class="w">' + l.q + l.roh + '</span>' +
+    '<span class="l">' + esc(name) + '</span>' +
+    '<span class="w r">' + r.roh + r.q + '</span></div>';
+}
+function duellRoh(name, a, b){
+  return '<div class="dz"><span class="w">' + esc(a == null ? "–" : a) + '</span>' +
+    '<span class="l">' + esc(name) + '</span>' +
+    '<span class="w r">' + esc(b == null ? "–" : b) + '</span></div>';
+}
+
+/* ---------- Zusammenfassung eines Frames ----------
+   Aus a_frame kommen Quoten je Frame nur bei Matches aus dem neuen
+   Zaehler. Bei den Altdaten stehen dort nur Punkte, Dauer, Anstoss und
+   Gewinner - alles andere wird aus den Ereignissen des Frames gezaehlt,
+   und die gibt es. Bei den elf Matches aus der Tablet-Datei gibt es
+   weder das eine noch das andere. */
+function frameZahlen(d, nr){
+  var z = [{ brAnz:0, brPkt:0, baelle:0, hi:0, foulAnz:0, foulPkt:0 },
+           { brAnz:0, brPkt:0, baelle:0, hi:0, foulAnz:0, foulPkt:0 }];
+  z.gab = false;
+  z.letzt = null;                    /* das Ereignis mit der hoechsten lfd */
+  d.breaks.forEach(function(b){
+    if(b.nr !== nr) return;
+    z.gab = true;
+    var t = z[b.sp];
+    t.brAnz++; t.brPkt += b.punkte;
+    t.baelle += (b.baelle || []).length;
+    if(b.punkte > t.hi) t.hi = b.punkte;
+    if(!z.letzt || b.lfd > z.letzt.lfd) z.letzt = { lfd:b.lfd, sp:b.sp, art:"b" };
+  });
+  d.fouls.forEach(function(x){
+    if(x.nr !== nr) return;
+    z.gab = true;
+    z[x.sp].foulAnz++; z[x.sp].foulPkt += x.punkte;
+    if(!z.letzt || x.lfd > z.letzt.lfd) z.letzt = { lfd:x.lfd, sp:x.sp, art:"f" };
+  });
+  return z;
+}
+
+/* Zweite Baelle aus dem Verlauf.
+   Ein Break aus k Baellen heisst: k gelochte Baelle, und nach jedem davon
+   stand ein Versuch auf den naechsten an - beim letzten Ball des Breaks
+   ging er daneben. Also k-1 gelungene zweite Baelle je Break.
+   Der Ball, mit dem der Frame zu Ende war, hat keinen Versuch mehr.
+
+   Gegenprobe ueber alle 638 Altmatches (1276 Spielerseiten):
+   getroffene zweite Baelle 14276 gegen 14250 in den Match-Summen (0,2 %
+   Abstand, bei 1250 von 1276 Seiten auf den Punkt), Versuche 46403 gegen
+   46563 (0,3 %). Die Abweichungen stecken schon in der Quelle - siehe
+   "Was dabei auffiel" in PROJEKT.md.
+
+   Die Pot-Quote laesst sich so NICHT bauen: dafuer braeuchte es die
+   Fehlversuche, und die alte Seite hat nur punktende Stoesse notiert. */
+function posVersuche(z, i, f){
+  var schluss = z.letzt && z.letzt.art === "b" && z.letzt.sp === i &&
+                f.gewonnen === true ? 1 : 0;
+  return z[i].baelle - schluss;
+}
+
+function quoteText(t, v, rechts){
+  var q = v ? Math.round(t * 100 / v) + " %" : "–";
+  var roh = '<em>(' + t + '/' + v + ')</em>';
+  return rechts ? roh + q : q + roh;
+}
+
+function duellHtml(name, a, b){
+  return '<div class="dz"><span class="w">' + a + '</span>' +
+    '<span class="l">' + esc(name) + '</span>' +
+    '<span class="w r">' + b + '</span></div>';
+}
+
+function frameDuell(d, nr, namen, proFrame){
+  var f0 = proFrame[nr][0], f1 = proFrame[nr][1];
+  var z = frameZahlen(d, nr);
+  var zaehler = f0.pots != null;     /* nur der neue Zaehler schreibt Quoten
+                                        je Frame mit */
+
+  var h = '<div class="duell frduell">' +
+    '<div class="dnamen"><div><i style="background:var(--serie-1)"></i>' +
+    esc(namen[0]) + '</div><div>' + esc(namen[1]) +
+    '<i style="background:var(--serie-2);margin:0 0 0 6px"></i></div></div>';
+
+  /* Reihenfolge wie abgesprochen: Punkte, Anstoß, gelochte Bälle,
+     zweite Bälle, höchstes Break, Fouls, Foulpunkte. Was der Zähler
+     zusätzlich kennt, hängt hinten dran. */
+  h += duellRoh("Punkte", f0.punkte, f1.punkte);
+  h += duellRoh("Anstoß", f0.anstoss === true ? "⦿" : "–",
+                          f1.anstoss === true ? "⦿" : "–");
+
+  if(zaehler){
+    f0.pot_try = f0.pots + f0.nicht_gelocht;
+    f1.pot_try = f1.pots + f1.nicht_gelocht;
+    h += duellRoh("Gelochte Bälle", f0.pots, f1.pots);
+    if(f0.flukes != null) h += duellRoh("davon Flukes", f0.flukes, f1.flukes);
+    h += duellZeile("Zweite Bälle", f0, f1, null, "pos_hit", "pos_try");
+    h += duellZeile("Pot-Quote",    f0, f1, null, "pots",    "pot_try");
+    if(f0.long_try != null)
+      h += duellZeile("Long Pots", f0, f1, null, "long_hit", "long_try");
+  }else if(z.gab){
+    /* Aus dem Verlauf gerechnet - siehe posVersuche(). */
+    h += duellRoh("Gelochte Bälle", z[0].baelle, z[1].baelle);
+    h += duellHtml("Zweite Bälle",
+      quoteText(z[0].baelle - z[0].brAnz, posVersuche(z, 0, f0), false),
+      quoteText(z[1].baelle - z[1].brAnz, posVersuche(z, 1, f1), true));
+  }
+
+  if(z.gab){
+    h += duellRoh("Höchstes Break", z[0].hi || "–", z[1].hi || "–");
+    h += duellRoh("Fouls", z[0].foulAnz, z[1].foulAnz);
+    h += duellRoh("Foulpunkte abgegeben", z[0].foulPkt, z[1].foulPkt);
+  }
+
+  if(zaehler){
+    h += duellRoh("Safes", f0.safes, f1.safes);
+    if(f0.safes_gut != null)
+      h += duellZeile("Safe-Quote", f0, f1, null, "safes_gut", "safes");
+    if(f0.snooks != null){
+      h += duellRoh("davon mit Snooker", f0.snooks, f1.snooks);
+      h += duellRoh("Snooker brachte Foul", f0.snook_won, f1.snook_won);
+    }
+    if(f0.fouls_snk != null)
+      h += duellRoh("Fouls aus dem Snooker", f0.fouls_snk, f1.fouls_snk);
+    if(f0.stoesse != null){
+      h += duellRoh("Stöße", f0.stoesse, f1.stoesse);
+      h += duellRoh("Stoßzeit", stossZeit(f0), stossZeit(f1));
+    }
+  }else if(!z.gab){
+    h += '<div class="dz"><span class="l" style="min-width:0;flex:1 1 auto">' +
+         'Mehr als der Punktestand steht zu diesem Frame nicht in der Quelle.' +
+         '</span></div>';
+  }
+
+  return h + '</div>';
+}
+
+function stossZeit(f){
+  return f.stoss_ms && f.stoesse ? zahl(f.stoss_ms / f.stoesse / 1000) + " s" : "–";
+}
+
+function protokoll(d, namen, proFrame, nrs){
+  var h = "";
+  nrs.forEach(function(nr, i){
+    var f0 = proFrame[nr][0], f1 = proFrame[nr][1];
+    var zusatz = '<span class="pt">' + f0.punkte + '–' + f1.punkte + '</span>' +
+         (f0.annulliert ? '<span>annulliert (Re-rack)</span>' : '') +
+         (f0.unvollstaendig ? '<span>abgebrochen</span>' : '') +
+         (f0.dauer_s ? '<span>' + Math.round(f0.dauer_s/60) + ' min</span>' : '');
+    /* Der Stoßverlauf steckt noch einmal in einem eigenen Fach. Offen
+       stand er dem im Weg, worum es hier geht: den Zahlen des Frames.
+       Eine gemeinsame Gruppe fuer alle Frames - so ist hoechstens ein
+       Verlauf auf einmal aufgeklappt. */
+    h += fach("verlauf", "f" + nr, "Frame " + nr, zusatz,
+      frameDuell(d, nr, namen, proFrame) +
+      fach("stoss", "f" + nr, "Stoßverlauf anzeigen",
+           "nur was den Stand geändert hat",
+           (d.roh ? zeilenAusRoh(d.roh, nr, namen)
+                  : zeilenAusTabellen(d, nr, namen)),
+           false, "stossfach"),
+      i === 0, "frfach");
+  });
+  return h || '<div class="laden">Kein Verlauf gespeichert.</div>';
+}
+
+/* Neue Matches: das Protokoll steht so in matches.daten, wie der Zaehler
+   es geschrieben hat. */
+function zeilenAusRoh(verlauf, nr, namen){
+  var f = verlauf.filter(function(x){ return (x.nr || 0) === nr; })[0];
+  if(!f) return textZeile(null, "Kein Verlauf.");
+  return f.ereignisse.map(function(e){
+    if(e.typ === "break")
+      return breakZeile(e.sp, namen, (e.b||[]).map(function(x){
+        return { w:x.v, frei:!!x.f, long:!!x.l };
+      }), e.p, e.pre);
+    if(e.e && e.e.typ === "foul")
+      return textZeile(e.e.sp, "Foul – " + e.e.grund + ", " + e.e.punkte +
+        " an " + namen[1-e.e.sp] +
+        (e.e.lage === "snooker" ? " (aus dem Snooker)" : ""),
+        "foul", namen[e.e.sp]);
+    /* Safes und Fehlversuche stehen hier nicht. Sie aendern den Stand
+       nicht, machen die Liste aber dreimal so lang. Gezaehlt sind sie
+       in den Zahlen ueber dem Verlauf. */
+    if(e.e) return "";
+    return textZeile(null, e.t || "");
+  }).join("");
+}
+
+/* Altmatches: Breaks und Fouls aus den flachen Tabellen, in der
+   Reihenfolge, in der sie im Frame standen. */
+function zeilenAusTabellen(d, nr, namen){
+  var ev = [];
+  d.breaks.forEach(function(x){ if(x.nr === nr) ev.push({lfd:x.lfd, art:"b", x:x}); });
+  d.fouls .forEach(function(x){ if(x.nr === nr) ev.push({lfd:x.lfd, art:"f", x:x}); });
+  ev.sort(function(p,q){ return p.lfd - q.lfd; });
+  if(!ev.length) return textZeile(null, "Keine Ereignisse.");
+  return ev.map(function(e){
+    if(e.art === "b")
+      return breakZeile(e.x.sp, namen, e.x.baelle || [], e.x.punkte, false);
+    return textZeile(e.x.sp, "Foul – " + e.x.punkte + " an " + namen[1-e.x.sp],
+      "foul", namen[e.x.sp]);
+  }).join("");
+}
+
+function detailOeffnen(matchId, sp){
+  el("inhalt").innerHTML = '<div class="laden">Match wird geholt …</div>';
+  /* Frame 3 des vorigen Matches sagt ueber dieses nichts. Beim Wechsel
+     faengt der Verlauf wieder beim ersten Frame an. */
+  delete offen.verlauf;
+  var q = "match_id=eq." + encodeURIComponent(matchId);
+  Promise.all([
+    hol("v_match?" + q + "&order=sp"),
+    hol("a_frame?" + q + "&order=nr,sp"),
+    hol("a_break?" + q + "&order=nr,lfd"),
+    hol("a_foul?"  + q + "&order=nr,lfd")
+  ]).then(function(r){
+    if(r[0].length < 2) throw new Error("Match nicht gefunden.");
+    var d = { seiten:r[0], frames:r[1], breaks:r[2], fouls:r[3],
+              sp:sp, roh:null };
+    if(r[0][0].quelle !== "alt"){
+      /* Neues Match: das volle Protokoll liegt als jsonb bereit. */
+      return hol("matches?id=eq." + encodeURIComponent(matchId) + "&select=daten")
+        .then(function(m){
+          if(m.length && m[0].daten && m[0].daten.verlauf) d.roh = m[0].daten.verlauf;
+          detailZeichnen(d);
+        }, function(){ detailZeichnen(d); });
+    }
+    detailZeichnen(d);
+  }).catch(zeigFehler);
+}
+
+/* Knopfdruecke: die Seite wird neu gezeichnet, deshalb haengt der
+   Klick am Behaelter. */
+el("inhalt").addEventListener("click", function(e){
+  /* Klappfach auf oder zu. Nur eines je Gruppe bleibt offen, das vorige
+     schliesst sich von selbst. Nochmal auf dasselbe schliesst es. */
+  var kopf = e.target.closest ? e.target.closest(".fachkopf") : null;
+  if(kopf){
+    var f = kopf.parentNode, g = f.getAttribute("data-gruppe"),
+        war = f.classList.contains("offen");
+    Array.prototype.forEach.call(
+      el("inhalt").querySelectorAll('.fach[data-gruppe="' + g + '"].offen'),
+      function(x){
+        x.classList.remove("offen");
+        x.querySelector(".fachkopf").setAttribute("aria-expanded", "false");
+      });
+    if(war){
+      offen[g] = null;
+    }else{
+      f.classList.add("offen");
+      kopf.setAttribute("aria-expanded", "true");
+      offen[g] = f.getAttribute("data-fach");
+      /* Schliesst sich ueber dem geklickten Fach eines, rutscht der Kopf
+         nach oben aus dem Bild. */
+      kopf.scrollIntoView({ block:"nearest" });
+    }
+    return;
+  }
+
+  /* Klick auf eine Matchzeile: Detailansicht. Die Kennung steht an der
+     Zeile, geklickt wird aber eine Zelle darin. */
+  var zeile = e.target.closest ? e.target.closest("tr.klickbar") : null;
+  if(zeile){
+    location.hash = "m=" + zeile.getAttribute("data-match") +
+                    "&sp=" + zeile.getAttribute("data-sp");
+    return;
+  }
+  var t = e.target.getAttribute && e.target.getAttribute("data-tun");
+  if(!t) return;
+  if(t === "zurueck"){ location.hash = seite === "start" ? "" : "s=" + seite; }
+  else if(t === "zoomBlick"){ zoomBlick = !zoomBlick; zeichne(); }
+  else if(t === "zoomForm"){ zoomForm = !zoomForm; zeichne(); }
+  else if(t === "zoomMonat"){ zoomMonat = !zoomMonat; zeichne(); }
+  else if(t === "monatAlle"){ monatAlle = !monatAlle; zeichne(); }
+  else if(t === "breaksAlle"){ breaksAb10 = !breaksAb10; breaksZeichnen(); }
+  else if(t === "tabBlick" || t === "tabForm" || t === "tabMonat" ||
+          t === "tabBreaks"){
+    /* Tabellenansicht: steht direkt vor der Knopfzeile. */
+    var zeile = e.target.parentNode,
+        tab = zeile.previousElementSibling;
+    var an = tab.classList.toggle("tabelle-aus");
+    e.target.textContent = an ? "Tabelle" : "Tabelle ausblenden";
+  }
+});
+
+el("wSpieler").addEventListener("change", function(){
+  spieler = this.value;
+  Daten.best = null;          /* gehoert dem alten Spieler */
+  Daten.bverteilung = null; Daten.bpower = null;
+  laden();
+});
+el("wZeit").addEventListener("change", function(){
+  if(seite === "breaks"){ zeitOrd = Number(this.value); breaksZeichnen(); }
+  else { zeitWahl = this.value; zeichne(); }
+});
+
+function laden(){
+  el("inhalt").innerHTML = '<div class="laden">Daten werden geholt …</div>';
+  var q = "spieler=eq." + encodeURIComponent(spieler);
+  Promise.all([
+    hol("v_zeitraum?" + q + "&order=ord"),
+    hol("v_jahr?" + q),
+    hol("v_monat?" + q + "&order=monat"),
+    hol("v_quartal?" + q + "&order=quartal"),
+    hol("v_match?" + q + "&order=datum.desc,match_id.desc&limit=200")
+  ]).then(function(r){
+    Daten.zeitraum = r[0]; Daten.jahr = r[1];
+    Daten.monat = r[2];    Daten.quartal = r[3];
+    Daten.matches = r[4];
+
+    /* Neuer Spieler, neue Jahre - die Liste muss neu gebaut werden. */
+    el("wZeit").setAttribute("data-liste", "");
+    if(zeitWahl !== "alle" && !Daten.jahr.some(function(j){
+      return String(j.jahr) === zeitWahl;
+    })) zeitWahl = "alle";
+    /* Der ganze Zeitraum, nicht nur die geholten 200 Matches. Die
+       Jahresansicht kennt ihn. */
+    var alle = Daten.jahr.slice().sort(function(a,b){ return a.jahr - b.jahr; });
+    Daten.bereit = true;
+    el("stand").textContent = alle.length
+      ? datumKurz(alle[0].von) + " bis " + datumKurz(alle[alle.length-1].bis) +
+        " · " + Daten.jahr.reduce(function(s,j){ return s + Number(j.matches); }, 0) +
+        " Matches"
+      : "";
+    routen();
+  }).catch(zeigFehler);
+}
+
+/* Die Adresszeile entscheidet, was zu sehen ist. Damit gehen Zurück-Taste
+   und Neuladen, und ein einzelnes Match ist verlinkbar. */
+function routen(){
+  var t = location.hash.replace(/^#/, ""),
+      m = /(?:^|&)m=([^&]+)/.exec(t);
+  if(m){
+    reiterZeichnen();
+    var sp = /(?:^|&)sp=(\d)/.exec(t);
+    detailOeffnen(decodeURIComponent(m[1]), sp ? Number(sp[1]) : 0);
+    return;
+  }
+  var s = /(?:^|&)s=([a-z]+)/.exec(t), id = s ? s[1] : "start";
+  seite = SEITEN.some(function(x){ return x.id === id; }) ? id : "start";
+  reiterZeichnen();
+  if(seite === "best"){
+    if(Daten.best) bestZeichnen(); else bestLaden();
+  }else if(seite === "breaks"){
+    if(Daten.bverteilung) breaksZeichnen(); else breaksLaden();
+  }else{
+    zeichne();
+  }
+}
+
+el("reiter").addEventListener("click", function(e){
+  var id = e.target.getAttribute && e.target.getAttribute("data-seite");
+  if(id) location.hash = id === "start" ? "" : "s=" + id;
+});
+window.addEventListener("hashchange", function(){
+  if(Daten.bereit) routen();
+});
+
+function zeigFehler(e){
+  el("inhalt").innerHTML = '<div class="fehler"><b>Kein Zugriff auf den Server.</b>' +
+    '<br>' + esc(e.message) + '<br><br>Ohne Netz geht diese Seite nicht – sie ' +
+    'holt alles frisch aus Supabase.</div>';
+}
+
+/* Start: wer hat die meisten Matches? Der steht vorn. */
+hol("v_zeitraum?zeitraum=eq.Alle%20Zeiten&order=matches.desc")
+  .then(function(z){
+    if(!z.length) throw new Error("Keine Daten in der Auswertung.");
+    el("wSpieler").innerHTML = z.map(function(r){
+      return '<option value="'+esc(r.spieler)+'">'+esc(r.spieler)+
+             ' ('+r.matches+')</option>';
+    }).join("");
+    spieler = z[0].spieler;
+    laden();
+  })
+  .catch(zeigFehler);
+})();
+</script>
+
+<script>
+/* App auf dem Tablet ablegen, damit sie ohne Internet startet.
+   Faellt still aus, wenn der Browser das nicht kann oder die Seite
+   ueber file:// geoeffnet wurde. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>

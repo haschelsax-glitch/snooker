@@ -1,0 +1,4306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#cc5500">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Snooker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000;color:#000;
+  font-family:Roboto,"Segoe UI",Arial,sans-serif;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column;font-size:16px}
+
+.top{flex:0 0 auto;height:75px;background:#cc5500;display:flex;align-items:center;
+  justify-content:space-between;padding:5px 8px;gap:8px}
+.tbtn{background:linear-gradient(#b7e356,#7fbe22);border:1px solid #5d8f18;
+  border-radius:8px;height:65px;width:120px;padding:0 8px;font-size:25px;font-weight:600;color:#112233;
+  font-family:inherit}
+.tbtn:active{filter:brightness(1.2)}
+.tbtn[disabled]{opacity:.4}
+.lat{font-size:11px;color:#ffffee;text-align:center;line-height:1.25;
+  font-variant-numeric:tabular-nums}
+.lat b{color:#cfffa0}
+.lat.bad b{color:#ffd0d0;background:#aa0000;padding:0 3px;border-radius:3px}
+
+.names{flex:0 0 auto;height:60px;background:#b6e83a;display:flex;align-items:stretch}
+.nm{flex:1;padding:0 6px;font-size:28px;line-height:60px;text-align:center;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.nm.act{background:#29c7f2;color:#fff;font-weight:700}
+.fr{flex:0 0 auto;padding:0 12px;font-size:25px;font-weight:600;
+  display:flex;align-items:center}
+
+.pts{flex:0 0 auto;background:#b6e83a;display:flex}
+.pt{flex:1;display:flex;justify-content:center}
+/* Gleich breit wie die Frameanzeige zwischen den Namen. So steht jedes
+   Feld genau unter seinem Namen. */
+.frGap{flex:0 0 auto}
+.ptBox{padding:7px 0 4px;border-radius:12px;text-align:center}
+.ptNum{font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+/* Feld fuer "braucht Snooker": erst sichtbar, wenn es etwas zu sagen gibt. */
+.snk{display:none;font-size:14px;font-weight:700;line-height:1.25}
+.ptBox.an{width:100%;border:1px solid rgba(0,0,0,.35)}
+.ptBox.an .snk{display:block}
+.ptBox.s1{background:#ffffff;color:#222222}
+.ptBox.s2{background:#ffb3b3;color:#3a0000}
+.ptBox.s3{background:#e04545;color:#ffffff}
+.ptBox.s4{background:#8f0f0f;color:#ffffff}
+
+.comm{flex:1 1 auto;min-height:0;background:#b6e83a;overflow-y:auto;padding:4px 10px 8px;
+  font-size:18px;line-height:1.45;-webkit-overflow-scrolling:touch}
+/* Kopfzeile eines Frames. Sieht wie ein Knopf aus, weil sie einer ist:
+   antippen klappt den Frame auf, der vorher offene geht zu. */
+.comm .frHd{font-weight:700;text-align:center;margin:6px 0 3px;
+  background:#a3d92a;border:1px solid rgba(0,0,0,.25);border-radius:8px;
+  padding:8px 6px;font-size:17px;color:#1a2b00}
+.comm .frHd.auf{background:#29c7f2;color:#fff;border-color:#1a9bc0}
+.comm .frHd:active{filter:brightness(1.15)}
+.comm div{padding:2px 0}
+.comm .me{font-weight:600}
+.comm .ln{line-height:1.75}
+.comm .who{font-weight:700;margin-right:4px}
+.comm .ln i{display:inline-flex;align-items:center;justify-content:center;
+  width:25px;height:25px;border-radius:50%;font-style:normal;font-size:14px;
+  font-weight:700;vertical-align:middle;margin:0 3px 0 0;
+  border:1px solid rgba(0,0,0,.45)}
+.comm .ln i.free{width:27px;height:27px;padding:0}
+.comm .ln i .fb{display:flex;align-items:center;justify-content:center;
+  width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;
+  border:1px solid rgba(255,255,255,.75)}
+.comm .ln i.long{box-shadow:0 0 0 2px #f5a623}
+/* Fluke: violetter Ring. Eine Regel fuer alle vier Themen - Violett
+   liest sich auf hellem wie auf dunklem Grund. */
+.comm .ln i.gluck,.brk .bb i.gluck{box-shadow:0 0 0 2px #a259d9}
+.comm .ln b{margin-left:5px;font-size:17px;vertical-align:middle;
+  font-variant-numeric:tabular-nums}
+
+/* Statuszeilen: feste Hoehe, Text darin senkrecht mittig.
+   Zu langer Text wird abgeschnitten statt die Zeile aufzublaehen. */
+.st2,.st3{flex:0 0 auto;height:35px;line-height:35px;padding:0 10px;
+  font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Die Meldungszeile ist die einzige mit langen Saetzen ("Frame beendet
+   von Hand: 74-30 - Gegner gewinnt. Frames 3-2."). Als feste eine Zeile
+   wurde sie abgeschnitten. Sie darf deshalb ueberall wachsen - auf
+   breiten Schirmen passt der Satz ohnehin in eine Zeile, auf schmalen
+   nimmt sie sich eine zweite. */
+.st1{flex:0 0 auto;min-height:35px;max-height:70px;padding:6px 10px;
+  font-size:20px;line-height:1.3;overflow:hidden;
+  background:#f5a623;color:#fff}
+.st2{background:#29c7f2;color:#fff}
+.st3{background:#000;color:#fff}
+.st4{flex:0 0 auto;height:30px;line-height:30px;background:#cdf06a;color:#000;
+  padding:0 10px;font-size:17px;text-align:right;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.boff{flex:0 0 auto;background:#cdf06a;padding:5px 6px 0}
+.boff button{width:100%;background:linear-gradient(#ffc04d,#ef8a00);
+  border:1px solid #b06400;border-radius:10px;padding:14px;font-size:19px;
+  font-weight:700;font-family:inherit;color:#3a2200;letter-spacing:.04em}
+.boff button:active{filter:brightness(1.15)}
+
+.chc{flex:0 0 auto;background:#f5a623;padding:5px 6px 6px}
+.chcTxt{color:#fff;font-size:14px;font-weight:700;padding:0 2px 4px}
+.chcRow{display:flex;gap:6px}
+.chcRow button{flex:1;background:linear-gradient(#ffffff,#e9e9e9);
+  border:1px solid #a05c00;border-radius:10px;padding:13px 6px;font-size:16px;
+  font-weight:700;font-family:inherit;color:#3a2200;line-height:1.15}
+.chcRow button:active{background:#000;color:#fff}
+
+.tog{flex:0 0 auto;background:#cdf06a;display:flex;gap:6px;padding:4px 6px}
+.tg{flex:1;background:#fff;border:2px solid #8ab52a;border-radius:8px;
+  padding:7px 4px;font-size:15px;font-weight:700;color:#555555;letter-spacing:.03em;
+  font-family:inherit}
+.tg.on{background:#000;color:#fff;border-color:#000}
+.tg[disabled]{opacity:.35}
+
+.pad{flex:0 0 auto;background:#cdf06a;display:grid;gap:5px;padding:5px;
+  grid-template-columns:repeat(5,1fr)}
+.pad button{border-radius:10px;border:1px solid rgba(0,0,0,.35);
+  height:85px;font-size:15px;font-weight:700;font-family:inherit;line-height:1.1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pad button small{font-size:11px;font-weight:400;opacity:.8}
+.pad button:active{filter:brightness(1.3)}
+.pad button[disabled]{opacity:.25}
+/* Textknoepfe etwas groesser als die Ballknoepfe */
+.pad button.k-safe,.pad button.k-miss,.pad button.k-foul{font-size:20px}
+.chip{background:#fff;border:2px solid #8ab52a;border-radius:9px;
+  padding:8px 14px;font-size:15px;font-weight:600;font-family:inherit;color:#222;
+  min-height:44px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.k-safe{background:linear-gradient(#d7f2d7,#a8dda8);color:#222}
+.k-miss{background:linear-gradient(#fff9c4,#f2e072);color:#222}
+.k-foul{background:linear-gradient(#ffd6d6,#f2a0a0);color:#222}
+.k-weiss{background:linear-gradient(#ffffff,#e2e2e2);color:#222}
+.k-rot{background:linear-gradient(#f04a4a,#c50d0d);color:#fff}
+.k-gelb{background:linear-gradient(#ffef4d,#e8d000);color:#333322}
+.k-gruen{background:linear-gradient(#2eb82e,#0a6b0a);color:#fff}
+.k-braun{background:linear-gradient(#d97a1f,#8a4200);color:#fff}
+.k-blau{background:linear-gradient(#4a4ae0,#0d0da8);color:#fff}
+.k-pink{background:linear-gradient(#ffc2dd,#f592bd);color:#440022}
+.k-schwarz{background:linear-gradient(#5a5a5a,#000);color:#fff}
+
+/* Ballfelder: weisses Feld, farbiger Kreis, Punktzahl im Kreis */
+.pad button.ball{background:linear-gradient(#ffffff,#eeeeee);color:#222}
+.pad button.ball:active{background:#b6e83a;filter:none}
+.pad .ball i{display:flex;align-items:center;justify-content:center;
+  width:60px;height:60px;border-radius:50%;font-style:normal;
+  font-size:30px;font-weight:700;line-height:1;
+  border:1px solid rgba(0,0,0,.4);box-shadow:inset 0 -4px 8px rgba(0,0,0,.18)}
+.c-rot{background:#d01414;color:#fff}
+.c-gelb{background:#f2d900;color:#3a3300}
+.c-gruen{background:#0a6b0a;color:#fff}
+.c-braun{background:#9c5a10;color:#fff}
+.c-blau{background:#1a1ac8;color:#fff}
+.c-pink{background:#f58ab8;color:#4a0022}
+.c-schwarz{background:#000;color:#fff}
+
+.balls{display:flex;flex-wrap:wrap;gap:5px}
+.balls button{flex:1 1 21%;padding:11px 2px;font-size:14px;font-weight:700;
+  border-radius:9px;border:2px solid rgba(0,0,0,.3);font-family:inherit;
+  line-height:1.1}
+.balls button.on{border:3px solid #000;outline:2px solid #fff;outline-offset:-5px}
+.balls button[disabled]{opacity:.18;filter:grayscale(1)}
+.row button[disabled]{opacity:.3}
+.sum{font-size:14px;margin-top:4px}
+.sum div{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.13)}
+.sum span{flex:1 1 auto}
+.sum b{flex:0 0 46px;text-align:right;font-variant-numeric:tabular-nums}
+.sum .hd{font-weight:700;border-bottom:2px solid rgba(0,0,0,.35)}
+.sum .gap{border:0;height:8px;padding:0}
+.askInfo{margin-top:10px;font-size:14px;background:#e6ffb0;border-radius:8px;
+  padding:8px;line-height:1.4}
+.askInfo.warn{background:#ffd0d0;color:#7a0000}
+/* Foul: eine Frage nach der anderen. Beantwortete Fragen
+   schrumpfen zu einer Zeile mit der Antwort. */
+.grp{margin-bottom:2px}
+.grp.neu{animation:fauf .18s ease-out}
+@keyframes fauf{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+.grp.kurz{display:flex;align-items:center;gap:10px;margin:2px 0;opacity:.72}
+.grp.kurz h3{flex:0 1 190px;min-width:0;margin:0;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.grp.kurz .chip{flex:0 1 auto;min-width:0}
+.row.zwei button{flex:1 1 40%}
+.row.schmal button{flex:1 1 18%}
+.fsum{margin-top:12px;text-align:center;font-size:21px;font-weight:700;
+  color:#1a2b00;background:#e6ffb0;border-radius:9px;padding:9px 6px}
+.fsum.warn{background:#ffd0d0;color:#7a0000;font-size:16px}
+
+#statsView{display:none;flex:1 1 auto;overflow-y:auto;background:#b6e83a;
+  padding:6px 9px 14px;-webkit-overflow-scrolling:touch}
+body.stats #statsView{display:block}
+body.stats .comm,body.stats .st1,body.stats .st2,body.stats .st3,
+body.stats .st4,body.stats .tog,body.stats .pad,body.stats .chc,
+body.stats .boff,
+body.breaks .comm,body.breaks .st1,body.breaks .st2,body.breaks .st3,
+body.breaks .st4,body.breaks .tog,body.breaks .pad,body.breaks .chc,
+body.breaks .boff{display:none!important}
+
+.sh{display:flex;margin:2px 0 2px}
+.sh div{flex:1 1 0;padding:4px 4px;text-align:center;font-weight:700;
+  font-size:14px;color:#fff;overflow:hidden;white-space:nowrap;
+  text-overflow:ellipsis;letter-spacing:.03em}
+.sh .p0{background:#29c7f2;border-radius:8px 0 0 8px}
+.sh .p1{background:#f5a623;border-radius:0 8px 8px 0}
+.fsel{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}
+.fsel .fs{background:#fff;border:2px solid #8ab52a;border-radius:8px;
+  padding:9px 10px;font-size:14px;font-weight:600;font-family:inherit;
+  color:#222;min-width:40px}
+.fsel .fs.on{background:#000;color:#fff;border-color:#000}
+.fhd{margin:4px 0 2px;font-size:13px;color:#26350a;text-align:center;
+  background:#cdf07a;border-radius:8px;padding:7px 5px;line-height:1.4}
+.sgrp{font-size:12px;font-weight:700;letter-spacing:.09em;color:#3a5008;
+  margin:14px 0 3px;border-bottom:1px solid rgba(0,0,0,.2);padding-bottom:2px}
+.srow{display:flex;align-items:baseline;gap:4px}
+.srow .sv{flex:1 1 0;font-size:16px;font-weight:700;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.srow .sv.r{text-align:right}
+.srow .sv em{font-style:normal;font-weight:400;font-size:12px;opacity:.7}
+.srow .sl{flex:0 0 auto;font-size:13px;color:#26350a;text-align:center;
+  min-width:104px}
+.sbar{height:5px;border-radius:3px;background:#f5a623;margin:3px 0 9px;
+  overflow:hidden}
+.sbar i{display:block;height:100%;background:#29c7f2}
+.sbar.off{background:#a8cc4e}
+.srow.plain{padding:5px 0;border-bottom:1px solid rgba(0,0,0,.1)}
+.sub{font-size:13px;display:flex;padding:2px 0}
+.sub span{flex:1 1 auto}
+.sub b{flex:0 0 42px;text-align:right;font-variant-numeric:tabular-nums}
+.snote{margin-top:16px;font-size:12px;color:#3a5008;line-height:1.5}
+
+/* ---------- Break-Ansicht ----------
+   Zwei Spalten, links Spieler 1, rechts Spieler 2. In jeder Spalte die
+   Breaks des Spielers, das groesste oben. */
+#brkView{display:none;flex:1 1 auto;overflow-y:auto;background:#b6e83a;
+  padding:6px 9px 14px;-webkit-overflow-scrolling:touch}
+body.breaks #brkView{display:block}
+.brkCols{display:flex;gap:6px;align-items:flex-start}
+.brkCol{flex:1 1 0;min-width:0}
+.brk{background:#cdf07a;border-radius:8px;padding:5px 7px;margin-bottom:5px}
+.brk .bp{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.brk .bf{font-size:12px;color:#3a5008;margin-left:5px}
+.brk .bb{display:block;margin-top:3px;line-height:1.9}
+.brk .bb i{display:inline-flex;align-items:center;justify-content:center;
+  width:25px;height:25px;border-radius:50%;font-style:normal;font-size:14px;
+  font-weight:700;vertical-align:middle;margin:0 3px 0 0;
+  border:1px solid rgba(0,0,0,.45)}
+.brk .bb i.free{width:27px;height:27px;padding:0}
+.brk .bb i .fb{display:flex;align-items:center;justify-content:center;
+  width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;
+  border:1px solid rgba(255,255,255,.75)}
+.brk .bb i.long{box-shadow:0 0 0 2px #f5a623}
+.brkLeer{text-align:center;font-size:15px;color:#3a5008;padding:10px 4px}
+
+.tabs{flex:0 0 auto;background:#4a4a4a;display:flex}
+.tab{flex:1;padding:9px 4px;text-align:center;color:#bbb;font-size:20px}
+.tab.on{color:#29c7f2;background:#3a3a3a;font-weight:700}
+
+.ov{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.72);
+  display:none;flex-direction:column;justify-content:center;padding:14px;z-index:9}
+.ov.on{display:flex}
+.card{background:#b6e83a;border-radius:14px;padding:12px;max-height:100%;overflow-y:auto}
+.card h2{font-size:20px;margin-bottom:8px}
+.card h2 span{font-weight:400;opacity:.75}
+.card h3{font-size:13px;margin:10px 0 5px;color:#3a5008;letter-spacing:.06em}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.row button{flex:1 1 30%;background:#fff;border:2px solid #8ab52a;border-radius:9px;
+  padding:11px 6px;font-size:15px;font-weight:600;font-family:inherit;color:#222}
+.row button.on{background:#000;color:#fff;border-color:#000}
+.ok[disabled]{opacity:.4}
+.ok{width:100%;margin-top:12px;background:linear-gradient(#b7e356,#6aa818);
+  border:1px solid #4d7a12;border-radius:10px;padding:14px;font-size:19px;
+  font-weight:700;font-family:inherit;color:#0d1a00}
+.cancel{width:100%;margin-top:6px;background:#fff;border:2px solid #999;
+  border-radius:10px;padding:11px;font-size:16px;font-family:inherit;color:#444}
+.card input{width:100%;padding:11px;font-size:18px;font-family:inherit;
+  border:2px solid #8ab52a;border-radius:9px;background:#fff;color:#000}
+.card select{width:100%;padding:11px;font-size:18px;font-family:inherit;
+  border:2px solid #8ab52a;border-radius:9px;background:#fff;color:#000;
+  margin-bottom:5px}
+.weg{display:none}
+
+.step{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.step .lbl{flex:1 1 auto;font-size:16px;font-weight:600}
+.step .val{flex:0 0 62px;text-align:center;font-size:26px;font-weight:700;
+  background:#fff;border:2px solid #8ab52a;border-radius:9px;padding:4px 0;
+  font-variant-numeric:tabular-nums}
+.step button{flex:0 0 52px;height:48px;background:#fff;border:2px solid #8ab52a;
+  border-radius:9px;font-size:24px;font-weight:700;font-family:inherit;color:#222}
+.step button:active{background:#000;color:#fff}
+.step input{flex:1 1 auto;width:auto}
+
+/* Startseite und Meisterschaft */
+.ok.gross{font-size:22px;padding:18px}
+.hsub{font-size:12px;font-weight:400;opacity:.85;display:block;margin-top:2px}
+.leer{font-size:14px;opacity:.75;padding:10px 0;line-height:1.4}
+.lt{font-size:13px;margin-top:6px}
+.lz{display:flex;align-items:center;gap:3px;padding:6px 2px;
+  border-bottom:1px solid rgba(0,0,0,.13);font-variant-numeric:tabular-nums}
+.lz.kopf{font-weight:700;font-size:11px;letter-spacing:.04em;color:#3a5008;
+  border-bottom:2px solid rgba(0,0,0,.35)}
+.lz span{flex:0 0 20px;text-align:center}
+.lz .p{flex:0 0 16px;text-align:left;opacity:.6}
+.lz .lsp{flex:1 1 auto;text-align:left;overflow:hidden;white-space:nowrap;
+  text-overflow:ellipsis;font-weight:600}
+.lz .lfr{flex:0 0 46px}
+.lz .pk{flex:0 0 28px;font-weight:700}
+.liste{margin-top:6px}
+.liste button.zeile{display:flex;align-items:center;gap:8px;width:100%;
+  background:#fff;border:2px solid #8ab52a;border-radius:9px;padding:11px;
+  margin-bottom:6px;font-family:inherit;font-size:16px;color:#222;text-align:left}
+.liste button.zeile:active{background:#000;color:#fff}
+.liste button.zeile b{flex:1 1 auto;font-weight:600;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+.liste button.zeile em{flex:0 0 auto;font-style:normal;font-size:12px;opacity:.7}
+.liste .zeile.tot{display:flex;align-items:center;gap:8px;background:#fff;
+  border:2px solid #cfe39a;border-radius:9px;padding:9px 11px;margin-bottom:5px;
+  font-size:15px}
+.liste .zeile.tot b{flex:1 1 auto;font-weight:600;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+.liste .zeile.tot em{flex:0 0 auto;font-style:normal;font-size:12px;opacity:.7}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chips button{background:#fff;border:2px solid #8ab52a;border-radius:9px;
+  padding:9px 11px;font-size:15px;font-family:inherit;color:#222}
+.chips button.on{background:#000;color:#fff;border-color:#000}
+.loesch{width:100%;margin-top:14px;background:#ffd0d0;border:2px solid #c06060;
+  border-radius:10px;padding:11px;font-size:16px;font-family:inherit;
+  color:#7a0000}
+.loesch:active{background:#7a0000;color:#fff}
+
+/* ---------- Kleine Bildschirme ----------
+   Die Masse oben sind fuer das Tablet gemacht. Auf einem Handy ist der
+   Bildschirm kuerzer, und weil alle Zeilen feste Hoehen haben, rutscht
+   sonst die Bedienung unten heraus. Darum in zwei Stufen alles kleiner.
+   Gemessen wird die Hoehe, nicht die Breite - darauf kommt es an. */
+
+/* Stufe 1: normales Handy hochkant (etwa 620-720 px nutzbar) */
+@media (max-height:720px){
+  .top{height:60px}
+  .tbtn{height:50px;width:104px;font-size:20px}
+  .lat{font-size:10px}
+  .names{height:48px}
+  .nm{font-size:24px;line-height:48px}
+  .fr{font-size:22px}
+  .ptNum{font-size:42px}
+  .ptBox{padding:4px 0 3px}
+  .snk{font-size:12px}
+  .comm{font-size:16px}
+  .comm .frHd{font-size:15px;padding:6px 5px;margin:4px 0 2px}
+  .comm .ln i{width:22px;height:22px;font-size:12px}
+  .comm .ln i.free{width:24px;height:24px}
+  .comm .ln i .fb{width:16px;height:16px;font-size:10px}
+  .st2,.st3{height:30px;line-height:30px;font-size:17px}
+  .st1{min-height:30px;max-height:56px;padding:5px 10px;font-size:17px}
+  .st4{height:26px;line-height:26px;font-size:15px}
+  .tg{padding:5px 4px;font-size:14px}
+  .pad{gap:4px;padding:4px}
+  .pad button{height:66px;font-size:13px}
+  .pad button.k-safe,.pad button.k-miss,.pad button.k-foul{font-size:17px}
+  .pad .ball i{width:46px;height:46px;font-size:24px}
+  .tab{padding:7px 4px;font-size:17px}
+  .zeile{font-size:14px}
+  /* Die Anstossleiste ist eine zusaetzliche Zeile, die nur zwischendurch
+     auftaucht. Sie muss mitschrumpfen, sonst rutscht genau dann die
+     Bedienung unten heraus. */
+  .boff button,.chcRow button,.rspRow button,#nfBar button{padding:9px;font-size:16px}
+}
+
+/* Stufe 2: kurzer Bildschirm (unter 620 px, kleines Handy oder Browser
+   mit viel eigener Leiste) */
+@media (max-height:620px){
+  .top{height:50px}
+  .tbtn{height:42px;width:92px;font-size:17px}
+  .lat{font-size:9px}
+  .names{height:40px}
+  .nm{font-size:20px;line-height:40px}
+  .fr{font-size:18px}
+  .ptNum{font-size:34px}
+  .ptBox{padding:3px 0 2px}
+  .comm{font-size:15px}
+  .comm .frHd{font-size:14px;padding:5px 4px}
+  .st2,.st3{height:25px;line-height:25px;font-size:15px}
+  .st1{min-height:25px;max-height:48px;padding:4px 10px;font-size:15px}
+  .st4{height:22px;line-height:22px;font-size:13px}
+  .tg{padding:4px 3px;font-size:13px}
+  .pad button{height:54px;font-size:12px}
+  .pad button.k-safe,.pad button.k-miss,.pad button.k-foul{font-size:15px}
+  .pad .ball i{width:38px;height:38px;font-size:20px}
+  .tab{padding:6px 4px;font-size:15px}
+  .boff button,.chcRow button,.rspRow button,#nfBar button{padding:7px;font-size:14px}
+  .boff{padding:4px 5px 0}
+}
+
+/* Stufe 3: quer gehaltenes Handy - da ist fast keine Hoehe uebrig */
+@media (max-height:480px){
+  .top{height:42px}
+  .tbtn{height:36px;width:80px;font-size:15px}
+  .names{height:32px}
+  .nm{font-size:17px;line-height:32px}
+  .fr{font-size:16px}
+  .ptNum{font-size:26px}
+  .st2,.st3{height:21px;line-height:21px;font-size:13px}
+  .st1{min-height:21px;max-height:40px;padding:3px 10px;font-size:13px}
+  .st4{height:19px;line-height:19px;font-size:12px}
+  .pad button{height:44px;font-size:11px}
+  .pad button.k-safe,.pad button.k-miss,.pad button.k-foul{font-size:13px}
+  .pad .ball i{width:30px;height:30px;font-size:16px}
+  .tab{padding:4px 4px;font-size:14px}
+  .boff button,.chcRow button,.rspRow button,#nfBar button{padding:5px;font-size:13px}
+  .boff{padding:3px 4px 0}
+  .tog{padding:3px 4px}
+  .tg{padding:3px 3px;font-size:12px}
+}
+
+/* ---------- Farbwaehler im Menue ----------
+   Vier Quadrate in der Leitfarbe des jeweiligen Themas. Das gewaehlte
+   bekommt einen hellen Ring. */
+.farbwahl{display:flex;gap:8px;margin:0 0 10px}
+.farbwahl button{flex:1 1 0;height:46px;border-radius:10px;
+  border:2px solid rgba(0,0,0,.35);font-family:inherit;font-size:11px;
+  font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);
+  padding:0;line-height:1}
+.farbwahl button.an{box-shadow:0 0 0 3px #fff, 0 0 0 5px rgba(0,0,0,.45)}
+.fw-jetzt{background:#cc5500}
+.fw-nacht{background:#1c2027}
+.fw-tuch{background:#14573a}
+.fw-signal{background:#0b57a4}
+
+/* ---------- Farbthemen ----------
+   Nur Farben. Groessen und Abstaende stehen weiter oben und bleiben in
+   allen Themen gleich. Bewusst ohne CSS-Variablen: der Chrome auf dem
+   alten Tablet kann sie moeglicherweise nicht. Jede Regel hat eine
+   Klasse mehr als die Grundregel und gewinnt deshalb - das funktioniert
+   auch in sehr alten Browsern. */
+
+
+/* Farbthema "nacht" - nur die Farben, alles andere bleibt.
+   Am <body> zusaetzlich die Klasse thema-nacht setzen.
+   theme-color im <head> muss per JS gesetzt werden: #10141a
+   Leitfarbe fuer den Knopf im Farbwaehler: #1c2027
+   Hinweis: die Regel html,body im Grundthema laesst sich nicht
+   praefixieren; hier steht nur body. Der Hintergrund von html
+   bleibt also #000, was verdeckt ist, weil body den Schirm fuellt. */
+
+body.thema-nacht{background:#10141a;color:#e6ecf2}
+body.thema-nacht .top{background:#10141a}
+body.thema-nacht .tbtn{background:linear-gradient(#48545f,#2b333c);border:1px solid #6a7682;color:#eef3f8}
+body.thema-nacht .lat{color:#c3cdd8}
+body.thema-nacht .lat b{color:#9fe07a}
+body.thema-nacht .names{background:#1c2027}
+body.thema-nacht .nm.act{background:#1273b9}
+body.thema-nacht .pts{background:#1c2027}
+body.thema-nacht .ptBox.an{border:1px solid rgba(255,255,255,.3)}
+body.thema-nacht .ptBox.s1{background:#2a313b;color:#eef3f8}
+body.thema-nacht .ptBox.s2{background:#4e1c1c;color:#ffc9c9}
+body.thema-nacht .ptBox.s3{background:#a32020}
+body.thema-nacht .ptBox.s4{background:#e33636}
+body.thema-nacht .comm{background:#1c2027}
+body.thema-nacht .comm .frHd{background:#2b323c;border:1px solid rgba(255,255,255,.22);color:#d3dce5}
+body.thema-nacht .comm .frHd.auf{background:#1273b9;border-color:#6cbdf0}
+body.thema-nacht .comm .ln i{border:1px solid rgba(255,255,255,.5)}
+body.thema-nacht .comm .ln i.long{box-shadow:0 0 0 2px #ffb03a}
+body.thema-nacht .st1{background:#8a5410;color:#ffe0b0}
+body.thema-nacht .st2{background:#12557f;color:#d6efff}
+body.thema-nacht .st4{background:#262c35;color:#b9c4cf}
+body.thema-nacht .boff{background:#262c35}
+body.thema-nacht .boff button{background:linear-gradient(#f0a733,#c0700c);border:1px solid #ffc46b;color:#1c1000}
+body.thema-nacht .chc{background:#8a5410}
+body.thema-nacht .chcTxt{color:#ffe0b0}
+body.thema-nacht .chcRow button{background:linear-gradient(#39414c,#2a313b);border:1px solid #ffc46b;color:#eef3f8}
+body.thema-nacht .chcRow button:active{background:#fff;color:#000}
+body.thema-nacht .tog{background:#262c35}
+body.thema-nacht .tg{background:#333b45;border:2px solid #5b6773;color:#c3cdd8}
+body.thema-nacht .tg.on{background:#fff;color:#000;border-color:#fff}
+body.thema-nacht .pad{background:#262c35}
+body.thema-nacht .pad button{border:1px solid rgba(255,255,255,.3)}
+body.thema-nacht .pad button.ball{background:linear-gradient(#3d4651,#2e3640);color:#e6ecf2}
+body.thema-nacht .pad button.ball:active{background:#1e88d6}
+body.thema-nacht .pad .ball i{border:1px solid rgba(255,255,255,.5)}
+body.thema-nacht .c-blau{background:#2a2ade}
+body.thema-nacht .c-schwarz{background:#0b0b0b}
+body.thema-nacht .balls button{border:2px solid rgba(255,255,255,.3)}
+body.thema-nacht .balls button.on{border:3px solid #fff;outline:2px solid #000}
+body.thema-nacht .sum div{border-bottom:1px solid rgba(255,255,255,.16)}
+body.thema-nacht .sum .hd{border-bottom:2px solid rgba(255,255,255,.3)}
+body.thema-nacht .askInfo{background:#2a313b}
+body.thema-nacht .askInfo.warn{background:#4e1c1c;color:#ffc9c9}
+body.thema-nacht .fsum{color:#cfe8b0;background:#2a313b}
+body.thema-nacht .fsum.warn{background:#4e1c1c;color:#ffc9c9}
+body.thema-nacht #statsView{background:#1c2027}
+body.thema-nacht .sh .p0{background:#1273b9}
+body.thema-nacht .sh .p1{background:#a3660f}
+body.thema-nacht .fsel .fs{background:#333b45;border:2px solid #5b6773;color:#e6ecf2}
+body.thema-nacht .fsel .fs.on{background:#fff;color:#000;border-color:#fff}
+body.thema-nacht .fhd{color:#c3cdd8;background:#2a313b}
+body.thema-nacht .sgrp{color:#8fbede;border-bottom:1px solid rgba(255,255,255,.22)}
+body.thema-nacht .srow .sl{color:#aab6c2}
+body.thema-nacht .sbar{background:#a3660f}
+body.thema-nacht .sbar i{background:#1e88d6}
+body.thema-nacht .sbar.off{background:#3d4651}
+body.thema-nacht .srow.plain{border-bottom:1px solid rgba(255,255,255,.14)}
+body.thema-nacht .snote{color:#9aa6b2}
+body.thema-nacht #brkView{background:#1c2027}
+body.thema-nacht .brk{background:#2a313b}
+body.thema-nacht .brk .bf{color:#9fb0be}
+body.thema-nacht .brk .bb i{border:1px solid rgba(255,255,255,.5)}
+body.thema-nacht .brk .bb i.long{box-shadow:0 0 0 2px #ffb03a}
+body.thema-nacht .brkLeer{color:#9fb0be}
+body.thema-nacht .tabs{background:#10141a}
+body.thema-nacht .tab{color:#8d99a6}
+body.thema-nacht .tab.on{color:#6cbdf0;background:#1c2027}
+body.thema-nacht .ov{background:rgba(0,0,0,.8)}
+body.thema-nacht .card{background:#232932}
+body.thema-nacht .card h3{color:#8fbede}
+body.thema-nacht .row button{background:#333b45;border:2px solid #5b6773;color:#e6ecf2}
+body.thema-nacht .chip{background:#333b45;border-color:#5b6773;color:#e6ecf2}
+body.thema-nacht .row button.on{background:#fff;color:#000;border-color:#fff}
+body.thema-nacht .ok{background:linear-gradient(#4aa85a,#2f7d3c);border:1px solid #7ed08c;color:#ffffff}
+body.thema-nacht .cancel{background:#333b45;border:2px solid #5b6773;color:#c3cdd8}
+body.thema-nacht .card input{border:2px solid #5b6773;background:#161a20;color:#fff}
+body.thema-nacht .card select{border:2px solid #5b6773;background:#161a20;color:#fff}
+body.thema-nacht .step .val{background:#333b45;border:2px solid #5b6773}
+body.thema-nacht .step button{background:#333b45;border:2px solid #5b6773;color:#e6ecf2}
+body.thema-nacht .step button:active{background:#fff;color:#000}
+body.thema-nacht .lz{border-bottom:1px solid rgba(255,255,255,.16)}
+body.thema-nacht .lz.kopf{color:#8fbede;border-bottom:2px solid rgba(255,255,255,.3)}
+body.thema-nacht .liste button.zeile{background:#333b45;border:2px solid #5b6773;color:#e6ecf2}
+body.thema-nacht .liste button.zeile:active{background:#fff;color:#000}
+body.thema-nacht .liste .zeile.tot{background:#2a313b;border:2px solid #3f4956}
+body.thema-nacht .chips button{background:#333b45;border:2px solid #5b6773;color:#e6ecf2}
+body.thema-nacht .chips button.on{background:#fff;color:#000;border-color:#fff}
+body.thema-nacht .loesch{background:#4e1c1c;border:2px solid #8f3535;color:#ffc9c9}
+body.thema-nacht .loesch:active{background:#ffc9c9;color:#4e1c1c}
+
+/* Farbthema "tuch" - nur die Farben, alles andere bleibt.
+   Am <body> zusaetzlich die Klasse thema-tuch setzen.
+   theme-color im <head> muss per JS gesetzt werden: #5a3a1e
+   Leitfarbe fuer den Knopf im Farbwaehler: #14573a
+   Hinweis: die Regel html,body im Grundthema laesst sich nicht
+   praefixieren; hier steht nur body. Der Hintergrund von html
+   bleibt also #000, was verdeckt ist, weil body den Schirm fuellt. */
+
+body.thema-tuch{background:#241f14;color:#241f14}
+body.thema-tuch .top{background:#5a3a1e}
+body.thema-tuch .tbtn{background:linear-gradient(#e2c489,#bd9450);border:1px solid #7a5626;color:#241704}
+body.thema-tuch .lat{color:#efe2c8}
+body.thema-tuch .lat b{color:#ffd88a}
+body.thema-tuch .names{background:#e3d8bc}
+body.thema-tuch .nm.act{background:#14573a;color:#f7f2e2}
+body.thema-tuch .pts{background:#e3d8bc}
+body.thema-tuch .ptBox.s1{background:#fbf7ec;color:#241f14}
+body.thema-tuch .ptBox.s2{background:#f3c3b4;color:#4a1200}
+body.thema-tuch .ptBox.s3{background:#b5342a}
+body.thema-tuch .ptBox.s4{background:#6e1610}
+body.thema-tuch .comm{background:#f3ecd9}
+body.thema-tuch .comm .frHd{background:#ddd0ae;color:#3a2c10}
+body.thema-tuch .comm .frHd.auf{background:#14573a;color:#f7f2e2;border-color:#0e4630}
+body.thema-tuch .comm .ln i.long{box-shadow:0 0 0 2px #b07a1e}
+body.thema-tuch .st1{background:#8a5a20;color:#fbf3e2}
+body.thema-tuch .st2{background:#14573a;color:#f0f7e8}
+body.thema-tuch .st3{background:#241704;color:#f7f2e2}
+body.thema-tuch .st4{background:#ddd0ae;color:#3a2c10}
+body.thema-tuch .boff{background:#14573a}
+body.thema-tuch .boff button{background:linear-gradient(#e2c489,#b8892f);border:1px solid #7a5626;color:#241704}
+body.thema-tuch .chc{background:#8a5a20}
+body.thema-tuch .chcTxt{color:#fbf3e2}
+body.thema-tuch .chcRow button{background:linear-gradient(#fbf7ec,#ece3cd);border:1px solid #7a5626;color:#241704}
+body.thema-tuch .chcRow button:active{background:#241704;color:#fbf3e2}
+body.thema-tuch .tog{background:#14573a}
+body.thema-tuch .tg{background:#f3ecd9;border:2px solid #0e4630;color:#4a4030}
+body.thema-tuch .tg.on{background:#241704;color:#fbf3e2;border-color:#241704}
+body.thema-tuch .pad{background:#14573a}
+body.thema-tuch .pad button.ball{background:linear-gradient(#fbf7ec,#ece3cd);color:#241f14}
+body.thema-tuch .pad button.ball:active{background:#f0d79a}
+body.thema-tuch .askInfo{background:#e8ddc2}
+body.thema-tuch .askInfo.warn{background:#f5cfc5;color:#6e1610}
+body.thema-tuch .fsum{color:#14573a;background:#e8ddc2}
+body.thema-tuch .fsum.warn{background:#f5cfc5;color:#6e1610}
+body.thema-tuch #statsView{background:#f3ecd9}
+body.thema-tuch .sh .p0{background:#14573a}
+body.thema-tuch .sh .p1{background:#c9a063;color:#241704}
+body.thema-tuch .fsel .fs{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
+body.thema-tuch .fsel .fs.on{background:#14573a;color:#f7f2e2;border-color:#14573a}
+body.thema-tuch .fhd{color:#3a2c10;background:#e3d8bc}
+body.thema-tuch .sgrp{color:#14573a}
+body.thema-tuch .srow .sl{color:#4a3a18}
+body.thema-tuch .sbar{background:#c9a063}
+body.thema-tuch .sbar i{background:#14573a}
+body.thema-tuch .sbar.off{background:#e0dac6}
+body.thema-tuch .snote{color:#5a4a28}
+body.thema-tuch #brkView{background:#f3ecd9}
+body.thema-tuch .brk{background:#e3d8bc}
+body.thema-tuch .brk .bf{color:#5a4a28}
+body.thema-tuch .brk .bb i.long{box-shadow:0 0 0 2px #b07a1e}
+body.thema-tuch .brkLeer{color:#5a4a28}
+body.thema-tuch .tabs{background:#241704}
+body.thema-tuch .tab{color:#c3b393}
+body.thema-tuch .tab.on{color:#ffe0a8;background:#14573a}
+body.thema-tuch .card{background:#f3ecd9}
+body.thema-tuch .card h3{color:#14573a}
+body.thema-tuch .row button{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
+body.thema-tuch .chip{background:#fbf7ec;border-color:#14573a;color:#241f14}
+body.thema-tuch .row button.on{background:#14573a;color:#f7f2e2;border-color:#14573a}
+body.thema-tuch .ok{background:linear-gradient(#2e8f5e,#14573a);border:1px solid #0e4630;color:#ffffff}
+body.thema-tuch .cancel{background:#fbf7ec;border:2px solid #a3936e}
+body.thema-tuch .card input{border:2px solid #14573a;background:#fbf7ec;color:#241f14}
+body.thema-tuch .card select{border:2px solid #14573a;background:#fbf7ec;color:#241f14}
+body.thema-tuch .step .val{background:#fbf7ec;border:2px solid #14573a}
+body.thema-tuch .step button{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
+body.thema-tuch .step button:active{background:#14573a}
+body.thema-tuch .lz.kopf{color:#14573a}
+body.thema-tuch .liste button.zeile{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
+body.thema-tuch .liste button.zeile:active{background:#14573a}
+body.thema-tuch .liste .zeile.tot{background:#fbf7ec;border:2px solid #ddd0ae}
+body.thema-tuch .chips button{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
+body.thema-tuch .chips button.on{background:#14573a;border-color:#14573a;color:#f7f2e2}
+body.thema-tuch .loesch{background:#f5cfc5;border:2px solid #a8443a;color:#6e1610}
+body.thema-tuch .loesch:active{background:#6e1610}
+
+/* Farbthema "signal" - nur die Farben, alles andere bleibt.
+   Am <body> zusaetzlich die Klasse thema-signal setzen.
+   theme-color im <head> muss per JS gesetzt werden: #16202b
+   Leitfarbe fuer den Knopf im Farbwaehler: #0b57a4
+   Hinweis: die Regel html,body im Grundthema laesst sich nicht
+   praefixieren; hier steht nur body. Der Hintergrund von html
+   bleibt also #000, was verdeckt ist, weil body den Schirm fuellt. */
+
+body.thema-signal{background:#16202b;color:#16202b}
+body.thema-signal .top{background:#16202b}
+body.thema-signal .tbtn{background:linear-gradient(#ffffff,#dbe1e8);border:1px solid #7d8b99;color:#16202b}
+body.thema-signal .lat{color:#c6d1dc}
+body.thema-signal .lat b{color:#8fe07a}
+body.thema-signal .names{background:#ffffff}
+body.thema-signal .nm.act{background:#0b57a4}
+body.thema-signal .pts{background:#ffffff}
+body.thema-signal .ptBox.s1{background:#eef1f4;color:#16202b}
+body.thema-signal .ptBox.s2{background:#ffd6d6;color:#7a0000}
+body.thema-signal .ptBox.s3{background:#c81e1e}
+body.thema-signal .ptBox.s4{background:#7a0f0f}
+body.thema-signal .comm{background:#f4f6f8}
+body.thema-signal .comm .frHd{background:#dae1e8;border:1px solid rgba(0,0,0,.3);color:#16202b}
+body.thema-signal .comm .frHd.auf{background:#0b57a4;border-color:#073c73}
+body.thema-signal .comm .ln i.long{box-shadow:0 0 0 2px #b06a00}
+body.thema-signal .st1{background:#8a4b00}
+body.thema-signal .st2{background:#0b57a4}
+body.thema-signal .st4{background:#dae1e8;color:#16202b}
+body.thema-signal .boff{background:#c4ced8}
+body.thema-signal .boff button{background:linear-gradient(#ffb63f,#e07800);border:1px solid #8a4b00}
+body.thema-signal .chc{background:#8a4b00}
+body.thema-signal .chcRow button{background:linear-gradient(#ffffff,#e9edf1);border:1px solid #8a4b00;color:#16202b}
+body.thema-signal .chcRow button:active{background:#16202b}
+body.thema-signal .tog{background:#c4ced8}
+body.thema-signal .tg{border:2px solid #16202b;color:#4a5764}
+body.thema-signal .tg.on{background:#16202b;border-color:#16202b}
+body.thema-signal .pad{background:#c4ced8}
+body.thema-signal .pad button.ball{background:linear-gradient(#ffffff,#f0f2f5);color:#16202b}
+body.thema-signal .pad button.ball:active{background:#0b57a4}
+body.thema-signal .askInfo{background:#eef1f4}
+body.thema-signal .fsum{color:#0b3d70;background:#e2eaf3}
+body.thema-signal #statsView{background:#f4f6f8}
+body.thema-signal .sh .p0{background:#0b57a4}
+body.thema-signal .sh .p1{background:#8a4b00}
+body.thema-signal .fsel .fs{border:2px solid #16202b;color:#16202b}
+body.thema-signal .fsel .fs.on{background:#16202b;border-color:#16202b}
+body.thema-signal .fhd{color:#16202b;background:#dae1e8}
+body.thema-signal .sgrp{color:#0b57a4}
+body.thema-signal .srow .sl{color:#3c4a58}
+body.thema-signal .sbar{background:#b06a00}
+body.thema-signal .sbar i{background:#0b57a4}
+body.thema-signal .sbar.off{background:#c4ced8}
+body.thema-signal .snote{color:#4a5764}
+body.thema-signal #brkView{background:#f4f6f8}
+body.thema-signal .brk{background:#e4e9ee}
+body.thema-signal .brk .bf{color:#4a5764}
+body.thema-signal .brk .bb i.long{box-shadow:0 0 0 2px #b06a00}
+body.thema-signal .brkLeer{color:#4a5764}
+body.thema-signal .tabs{background:#16202b}
+body.thema-signal .tab{color:#a7b4c1}
+body.thema-signal .tab.on{color:#7cc4ff;background:#243343}
+body.thema-signal .card{background:#ffffff}
+body.thema-signal .card h3{color:#0b57a4}
+body.thema-signal .row button{border:2px solid #16202b;color:#16202b}
+body.thema-signal .chip{border-color:#16202b;color:#16202b}
+body.thema-signal .row button.on{background:#16202b;border-color:#16202b;color:#fff}
+body.thema-signal .ok{background:linear-gradient(#1a7fd4,#0b57a4);border:1px solid #073c73;color:#ffffff}
+body.thema-signal .cancel{border:2px solid #7d8b99}
+body.thema-signal .card input{border:2px solid #16202b}
+body.thema-signal .card select{border:2px solid #16202b}
+body.thema-signal .step .val{border:2px solid #16202b}
+body.thema-signal .step button{border:2px solid #16202b;color:#16202b}
+body.thema-signal .step button:active{background:#16202b}
+body.thema-signal .lz.kopf{color:#0b57a4}
+body.thema-signal .liste button.zeile{border:2px solid #16202b;color:#16202b}
+body.thema-signal .liste button.zeile:active{background:#16202b}
+body.thema-signal .liste .zeile.tot{border:2px solid #c4ced8}
+body.thema-signal .chips button{border:2px solid #16202b;color:#16202b}
+body.thema-signal .chips button.on{background:#16202b;border-color:#16202b;color:#fff}
+body.thema-signal .loesch{background:#ffd6d6;border:2px solid #a83a3a}
+
+/* Eine Antwort-Zeile mit einer Kugel behaelt die Ballfarbe. Die Themen
+   faerben .chip um, deshalb muessen die Ballfarben dahinter stehen -
+   sonst steht dunkle Schrift auf dunklem Blau oder Schwarz. */
+body .chip.k-weiss{background:linear-gradient(#ffffff,#e2e2e2);color:#222}
+body .chip.k-rot{background:linear-gradient(#f04a4a,#c50d0d);color:#fff}
+body .chip.k-gelb{background:linear-gradient(#ffef4d,#e8d000);color:#333322}
+body .chip.k-gruen{background:linear-gradient(#2eb82e,#0a6b0a);color:#fff}
+body .chip.k-braun{background:linear-gradient(#d97a1f,#8a4200);color:#fff}
+body .chip.k-blau{background:linear-gradient(#4a4ae0,#0d0da8);color:#fff}
+body .chip.k-pink{background:linear-gradient(#ffc2dd,#f592bd);color:#440022}
+body .chip.k-schwarz{background:linear-gradient(#5a5a5a,#000);color:#fff}
+/* Der Eintragen-Knopf traegt das Rot des Foul-Knopfes auf dem Zahlenfeld.
+   Steht hinter den Farbthemen, damit er in jedem Thema gleich aussieht. */
+body .ok.k-foul{background:linear-gradient(#ffd6d6,#f2a0a0);
+  border:1px solid #c07070;color:#222}
+/* Gesperrt: blasser, aber noch klar als der rote Foul-Knopf erkennbar. */
+body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <button class="tbtn" id="menu">Menü</button>
+  <div class="lat" id="lat">Reaktion<br><b>&ndash;</b></div>
+  <button class="tbtn" id="undo" disabled>Zurück</button>
+</div>
+
+<div class="names">
+  <div class="nm act" id="n0">Ich</div>
+  <div class="fr" id="fr">0&ndash;0</div>
+  <div class="nm" id="n1">Gegner</div>
+</div>
+
+<div class="pts">
+  <div class="pt"><div class="ptBox" id="b0">
+    <div class="ptNum" id="s0">0</div><div class="snk" id="k0"></div>
+  </div></div>
+  <div class="frGap" id="frGap"></div>
+  <div class="pt"><div class="ptBox" id="b1">
+    <div class="ptNum" id="s1">0</div><div class="snk" id="k1"></div>
+  </div></div>
+</div>
+
+<div class="comm" id="comm"><div id="commAlt"></div><div id="commNeu"></div></div>
+
+<div class="st1" id="st1">Neues Match.</div>
+<div class="st2" id="st2">Ich ist am Tisch.</div>
+<div class="st3" id="st3">Auf Rot (15 übrig).</div>
+<div class="st4" id="st4">Gleichstand, 147 auf dem Tisch.</div>
+
+<div class="chc" id="chcBar">
+  <div class="chcTxt" id="chcTxt">Foul – wer spielt weiter?</div>
+  <div class="chcRow">
+    <button id="chOpp">übernimmt</button>
+    <button id="chAgain">nochmal</button>
+  </div>
+</div>
+
+<div class="chc" id="rspBar">
+  <div class="chcTxt">Gleichstand – Schwarz liegt neu auf. Wer stößt an?</div>
+  <div class="chcRow">
+    <button id="rsp0">Ich</button>
+    <button id="rsp1">Gegner</button>
+  </div>
+</div>
+
+<div class="boff" id="boffBar"><button id="boff">ANSTOSS</button></div>
+<div class="boff" id="nfBar"><button id="nextFrame">NÄCHSTER FRAME</button></div>
+
+<div class="tog">
+  <button class="tg" id="tLong">LONG</button>
+  <button class="tg" id="tFluke">FLUKE</button>
+  <button class="tg" id="tSnook">SNOOKER</button>
+  <button class="tg" id="tFree">FREE BALL</button>
+</div>
+
+<div class="pad" id="pad">
+  <button class="k-safe" data-a="safe">Safe</button>
+  <button class="k-miss" data-a="miss">Nicht gelocht</button>
+  <button class="ball" data-b="1"><i class="c-rot">1</i></button>
+  <button class="ball" data-b="2"><i class="c-gelb">2</i></button>
+  <button class="ball" data-b="3"><i class="c-gruen">3</i></button>
+  <button class="k-foul" data-a="foul">Foul</button>
+  <button class="ball" data-b="4"><i class="c-braun">4</i></button>
+  <button class="ball" data-b="5"><i class="c-blau">5</i></button>
+  <button class="ball" data-b="6"><i class="c-pink">6</i></button>
+  <button class="ball" data-b="7"><i class="c-schwarz">7</i></button>
+</div>
+
+<div id="statsView"></div>
+<div id="brkView"></div>
+
+<div class="tabs">
+  <div class="tab on" id="tabMatch">Match</div>
+  <div class="tab" id="tabStats">Stats</div>
+  <div class="tab" id="tabBreaks">Breaks</div>
+</div>
+
+<div class="ov" id="ovFoul"><div class="card">
+  <h2>Foul <span id="fPhase"></span></h2>
+  <div id="fGroups"></div>
+  <button class="ok k-foul" id="fOk" disabled>0 Foulpunkte eintragen</button>
+  <button class="cancel" id="fCancel">Abbrechen</button>
+</div></div>
+
+<div class="ov" id="ovMenu"><div class="card">
+  <h2>Menü</h2>
+  <div class="farbwahl" id="farbwahl">
+    <button class="fw-jetzt" data-thema="">jetzt</button>
+    <button class="fw-nacht" data-thema="thema-nacht">Nacht</button>
+    <button class="fw-tuch" data-thema="thema-tuch">Tuch</button>
+    <button class="fw-signal" data-thema="thema-signal">Signal</button>
+  </div>
+  <div id="menuInfo"></div>
+  <button class="ok" id="mHome">Startseite</button>
+  <button class="ok" id="mFix">Korrektur</button>
+  <button class="ok" id="mFrEnd">Frame beenden</button>
+  <button class="ok" id="mRerack">Re-rack (Frame neu)</button>
+  <button class="ok" id="mNames">Namen ändern</button>
+  <button class="ok" id="mPause">Pause</button>
+  <button class="ok" id="mNew">Neues Match</button>
+  <button class="ok" id="mEnd">Spielende</button>
+  <button class="ok" id="mSync">Mit Server abgleichen</button>
+  <button class="ok" id="mExport">Alles exportieren</button>
+  <button class="ok" id="mImport">Sicherung einlesen</button>
+  <button class="cancel" id="mBack">Zurück zum Spiel</button>
+</div></div>
+
+<div class="ov" id="ovPause"><div class="card">
+  <h2>Pause</h2>
+  <div class="askInfo" id="pInfo">Die Zeitmessung steht still.</div>
+  <button class="ok" id="pWeiter">WEITERSPIELEN</button>
+</div></div>
+
+<div class="ov" id="ovAsk"><div class="card">
+  <h2 id="askT">Frage</h2>
+  <div id="askBody"></div>
+  <button class="ok" id="ask1">Ja</button>
+  <button class="ok" id="ask2">Nein</button>
+  <button class="ok" id="ask3">Drittens</button>
+  <button class="cancel" id="askC">Abbrechen</button>
+</div></div>
+
+<div class="ov" id="ovFix"><div class="card">
+  <h2>Korrektur</h2>
+  <h3>PUNKTE</h3>
+  <div class="step">
+    <div class="lbl" id="fixN0">Ich</div>
+    <button data-f="s0" data-d="-1">&minus;</button>
+    <div class="val" id="fixS0">0</div>
+    <button data-f="s0" data-d="1">+</button>
+  </div>
+  <div class="step">
+    <div class="lbl" id="fixN1">Gegner</div>
+    <button data-f="s1" data-d="-1">&minus;</button>
+    <div class="val" id="fixS1">0</div>
+    <button data-f="s1" data-d="1">+</button>
+  </div>
+  <h3>FRAMES</h3>
+  <div class="step">
+    <div class="lbl" id="fixF0">Ich</div>
+    <button data-f="f0" data-d="-1">&minus;</button>
+    <div class="val" id="fixFr0">0</div>
+    <button data-f="f0" data-d="1">+</button>
+  </div>
+  <div class="step">
+    <div class="lbl" id="fixF1">Gegner</div>
+    <button data-f="f1" data-d="-1">&minus;</button>
+    <div class="val" id="fixFr1">0</div>
+    <button data-f="f1" data-d="1">+</button>
+  </div>
+  <h3>ROTE NOCH AUF DEM TISCH</h3>
+  <div class="step">
+    <div class="lbl">Rote</div>
+    <button data-f="reds" data-d="-1">&minus;</button>
+    <div class="val" id="fixReds">15</div>
+    <button data-f="reds" data-d="1">+</button>
+  </div>
+  <h3>WER IST DRAN</h3>
+  <div class="row" id="fixCur">
+    <button data-n="0" class="on">Ich</button>
+    <button data-n="1">Gegner</button>
+  </div>
+  <h3>WORAUF WIRD GESPIELT</h3>
+  <div class="row" id="fixPhase">
+    <button data-p="red" class="on">Rot</button>
+    <button data-p="colour">Farbe frei</button>
+    <button data-p="sequence">Farbfolge</button>
+  </div>
+  <button class="ok" id="xOk">Übernehmen</button>
+  <button class="cancel" id="xCancel">Abbrechen</button>
+</div></div>
+
+<div class="ov" id="ovNames"><div class="card">
+  <h2>Namen</h2>
+  <h3>SPIELER 1</h3>
+  <input id="in0" type="text" autocomplete="off" value="Ich">
+  <h3>SPIELER 2</h3>
+  <input id="in1" type="text" autocomplete="off" value="Gegner">
+  <button class="ok" id="nOk">Übernehmen</button>
+  <button class="cancel" id="nCancel">Abbrechen</button>
+</div></div>
+
+<div class="ov on" id="ovHome"><div class="card">
+  <h2>Snooker</h2>
+  <div id="homeInfo"></div>
+  <button class="ok gross" id="hWeiter">Match fortsetzen</button>
+  <button class="ok" id="hNeu">Neues Match</button>
+  <button class="ok" id="hLiga">Meisterschaft</button>
+  <button class="ok" id="hListe">Gespeicherte Matches</button>
+  <button class="ok" id="hSpieler">Spieler</button>
+  <button class="ok" id="hSync">Mit Server abgleichen</button>
+  <button class="ok" id="hExport">Alles exportieren</button>
+  <button class="ok" id="hImport">Sicherung einlesen</button>
+  <button class="ok" id="hAuswert">Auswertung</button>
+</div></div>
+
+<input type="file" id="impFile" accept=".json,application/json"
+       style="position:fixed;left:-9999px;width:1px;height:1px">
+
+<div class="ov" id="ovSeite"><div class="card">
+  <h2 id="seiteT">Titel</h2>
+  <div id="seiteBody"></div>
+  <div id="seiteBtns"></div>
+</div></div>
+
+<div class="ov" id="ovLigaNeu"><div class="card">
+  <h2>Neue Meisterschaft</h2>
+  <h3>NAME</h3>
+  <input id="lnName" type="text" autocomplete="off">
+  <h3>SPIELER EINTRAGEN</h3>
+  <div class="step">
+    <input id="lnSpieler" type="text" autocomplete="off">
+    <button id="lnAdd">+</button>
+  </div>
+  <div class="chips" id="lnListe"></div>
+  <button class="ok" id="lnOk">Anlegen</button>
+  <button class="cancel" id="lnBack">Abbrechen</button>
+</div></div>
+
+<div class="ov" id="ovStart"><div class="card">
+  <h2>Neues Match</h2>
+  <h3>SPIELER 1</h3>
+  <select id="sel0"></select>
+  <input id="sn0" type="text" autocomplete="off" placeholder="Neuer Name">
+  <h3>SPIELER 2</h3>
+  <select id="sel1"></select>
+  <input id="sn1" type="text" autocomplete="off" placeholder="Neuer Name">
+  <h3>ROTE BÄLLE</h3>
+  <div class="row" id="sReds">
+    <button data-n="15" class="on">15 Rote</button>
+    <button data-n="10">10 Rote</button>
+    <button data-n="6">6 Rote</button>
+  </div>
+  <h3>WER STÖSST AN</h3>
+  <div class="row" id="sBreak">
+    <button data-n="0" class="on">Spieler 1</button>
+    <button data-n="1">Spieler 2</button>
+  </div>
+  <button class="ok" id="sOk">Los</button>
+  <button class="cancel" id="sBack">Zurück zur Startseite</button>
+</div></div>
+
+<script>
+(function(){
+"use strict";
+var BALL=["","Rot","Gelb","Grün","Braun","Blau","Pink","Schwarz"];
+var NAME=["Ich","Gegner"];
+
+var S, redsTotal=15, hist=[], comm=[], worst=0;
+/* Die fertigen Frames dieses Matches. Steht bewusst neben S und nicht
+   darin: snap() legt von S eine tiefe Kopie an, und die Liste waechst
+   mit jedem Frame. 400 Kopien davon waeren auf dem alten Tablet zu
+   viel Speicher. Angehaengt wird nur, nie geaendert - deshalb reicht
+   dem Rueckgaengig die Laenge. */
+var verlauf=[];
+var longOn=false, snookOn=false, freeOn=false, flukeOn=false;
+
+function el(i){return document.getElementById(i);}
+
+function fresh(first){
+  return {sc:[0,0],fr:[0,0],brk:0,cur:first,first:first,phase:"red",
+          reds:redsTotal,seq:2,
+          boff:true,freeAllowed:false,pending:null,snookeredOn:false,respot:false,
+          lastRed:false,
+          safes:[0,0],snooks:[0,0],snookWon:[0,0],
+          /* Ein Safe gilt als misslungen, wenn der Gegner danach
+             gepunktet hat - ausser per Fluke. safeOffen haelt fest, wer
+             den letzten Safe gespielt hat, solange noch offen ist, ob
+             er gehalten hat. */
+          safesWeg:[0,0],safeOffen:null,flukes:[0,0],
+          fouls:[0,0],foulsSnk:[0,0],fpts:[0,0],freason:[{},{}],
+          pots:[0,0],miss:[0,0],
+          longTry:[0,0],longHit:[0,0],hiBrk:[0,0],
+          posTry:[0,0],posHit:[0,0],posOpen:false,
+          shots:[0,0],shotMs:[0,0],frameMs:0,matchMs:0,pausenMs:0,
+          /* Ab welchem Eintrag in comm der laufende Frame beginnt.
+             Davor stehen die Ergebniszeile des vorigen Frames und die
+             Kopfzeile - die gehoeren nicht mehr dazu. */
+          frStart:0};
+}
+
+/* ---------- Zeitmessung ----------
+   Jeder Tipp beendet einen Stoß. Die Zeit seit dem vorigen Tipp gehört
+   dem Spieler, der gerade am Tisch war. Daraus ergeben sich Stoßzeit
+   (Schnitt) und Tischzeit (Anteil) - dieselben beiden Zahlen wie in
+   der alten App.
+   Alles über MAXSTOSS gilt als Unterbrechung und zählt nirgends mit,
+   damit ein vergessenes Tablet die Zahlen nicht ruiniert. */
+var MAXSTOSS=300000;               /* 5 Minuten */
+var tLast=Date.now(), pausiert=false;
+function jetzt(){return Date.now();}
+
+/* Zeit seit dem letzten Tipp verbuchen und als Stoß zählen. */
+function takt(){
+  var dt=jetzt()-tLast; tLast=jetzt();
+  if(pausiert||dt<0)return;
+  if(dt>MAXSTOSS){S.pausenMs+=dt;return;}
+  S.shotMs[S.cur]+=dt; S.shots[S.cur]++;
+  S.frameMs+=dt; S.matchMs+=dt;
+}
+/* Nur die Uhr neu stellen - war kein Stoß, sondern Buchhaltung. */
+function taktAus(){tLast=jetzt();}
+
+/* Zeit, die seit dem letzten Tipp läuft (für die Anzeige). */
+function laufendeZeit(){
+  if(pausiert)return 0;
+  var dt=jetzt()-tLast;
+  return (dt>0&&dt<MAXSTOSS)?dt:0;
+}
+function msTxt(ms){
+  var s=Math.round(ms/1000),m=Math.floor(s/60),h;
+  s=s%60;
+  if(m<60)return m+":"+(s<10?"0":"")+s;
+  h=Math.floor(m/60); m=m%60;
+  return h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+}
+function sekTxt(ms,n){return n>0?Math.round(ms/n/1000)+" s":"–";}
+
+/* Die orange Zeile ganz oben zeigt die laufende Zeit. */
+function uhr(){
+  if(!S)return;
+  var l=laufendeZeit();
+  el("st1").textContent=pausiert
+    ? "Pause – die Zeit läuft nicht."
+    : "Frame "+msTxt(S.frameMs+l)+"  ·  Spielzeit "+msTxt(S.matchMs+l);
+}
+
+function onTable(){
+  if(S.phase==="done")return 0;
+  if(S.phase==="sequence"){var t=0,i;for(i=S.seq;i<=7;i++)t+=i;return t;}
+  var t2=S.reds*8+27;
+  if(S.phase==="colour")t2+=7;
+  return t2;
+}
+
+/* Eine Textzeile ins Protokoll. tag ist der Ereignissatz fuer die
+   Auswertung - Safe, Nicht gelocht, Foul mit Grund und Lage. Die Anzeige
+   benutzt ihn nicht, sie zeigt nur t. Breaks brauchen keinen Tag, die
+   sind schon Objekte. */
+function say(t,mine,tag){
+  comm.push(tag?{t:t,m:mine,e:tag}:{t:t,m:mine});
+}
+
+var CIRC=["","c-rot","c-gelb","c-gruen","c-braun","c-blau","c-pink","c-schwarz"];
+
+/* Ein Break ist EINE Zeile: Name, die gelochten Baelle als Kreise,
+   dahinter die Breakpunkte. Jeder Pot haengt einen Kreis an.
+   Die Zeile wird nie veraendert, sondern ersetzt - sonst wuerde
+   "Zurueck" die alten Kopien mit veraendern. */
+function sayPot(me,val,punkte,frei,anstoss,gelocht){
+  var ball={v:val,f:!!frei,l:!!longOn,g:!!flukeOn,pv:gelocht||val},
+      last=comm.length?comm[comm.length-1]:null;
+  if(last&&last.typ==="break"&&last.sp===me&&last.offen){
+    comm[comm.length-1]={typ:"break",sp:me,b:last.b.concat([ball]),
+                         p:punkte,offen:true,pre:last.pre,m:last.m};
+  }else{
+    comm.push({typ:"break",sp:me,b:[ball],p:punkte,offen:true,
+               pre:!!anstoss,m:me===0});
+  }
+}
+function closeBreak(){
+  var last=comm.length?comm[comm.length-1]:null;
+  if(last&&last.typ==="break"&&last.offen)
+    comm[comm.length-1]={typ:"break",sp:last.sp,b:last.b,p:last.p,
+                         offen:false,pre:last.pre,m:last.m};
+}
+/* ---------- Das Protokoll zeichnen ----------
+   Frueher wurde bei jedem Tipp die ganze Historie neu gebaut. Das kostete
+   mit jedem Frame mehr Zeit - auf dem alten Tablet der Hauptgrund fuer
+   lange Reaktionszeiten. Jetzt steht die Historie in zwei Faechern:
+
+   commAlt  fertige Frames. Wird nur angefasst, wenn ein Frame dazukommt
+            oder wegfaellt.
+   commNeu  der laufende Frame. Hier wird nur angehaengt.
+
+   Die jeweils letzte Zeile wird jedes Mal neu gezeichnet: ein neuer Ball
+   ersetzt die Break-Zeile, er ergaenzt sie nicht. */
+var altFrames=-1, neuAnzahl=0, letzteZeile=null;
+/* Welcher fertige Frame ist aufgeklappt? -1 heisst: keiner, es laeuft der
+   aktuelle. Immer nur einer ist offen - so bleibt wenig im Bildschirm und
+   das Scrollen kurz. */
+var offenFrame=-1, offenGezeichnet=-2, springNach="";
+
+/* Nach Namenswechsel, Fortsetzen oder neuem Match stimmt nichts mehr -
+   dann wird beim naechsten Zeichnen alles neu aufgebaut. */
+function commFrisch(){
+  altFrames=-1; neuAnzahl=0; letzteZeile=null;
+  offenFrame=-1; offenGezeichnet=-2;
+}
+
+/* Kopfzeile eines Frames. auf/zu steuert nur das Dreieck davor. */
+function frKopf(txt,marke,offen){
+  return '<div class="frHd '+(offen?"auf":"zu")+'" data-fr="'+marke+'">'+
+         (offen?"▾":"▸")+" "+txt+"</div>";
+}
+
+function commZeichnen(){
+  var c=el("comm"),alt=el("commAlt"),neu=el("commNeu"),h,i,j,f,ev,ab,soll,
+      untenDran,neuGebaut=false,letzte,lauft;
+  if(!alt||!neu)return;
+  /* Zeigt der aufgeklappte Frame noch auf etwas? "Zurueck" kann verlauf
+     kuerzen, ohne offenFrame anzufassen - dann zeigte die Anzeige auf
+     einen Frame, den es nicht mehr gibt, und blieb leer stehen. Hier
+     einmal geprueft, dann muss keine andere Stelle mehr daran denken. */
+  if(offenFrame>=verlauf.length)offenFrame=-1;
+  ab=(verlauf.length?S.frStart||0:0);
+  soll=comm.length-ab; if(soll<0)soll=0;
+  lauft=(offenFrame<0);          /* laeuft der aktuelle Frame im Bild? */
+  if(!lauft)soll=0;              /* dann steht unten nichts */
+
+  /* Viele Zeichnungen aendern am Protokoll gar nichts - ein Umschalter,
+     ein Dialog, die Uhr. Dann wird hier nichts angefasst. Schon das
+     Abfragen der Scrollhoehe zwingt den Browser sonst zum Nachrechnen
+     der ganzen Seite, und das kostet mit langem Protokoll spuerbar.
+
+     Ob sich etwas geaendert hat, verraet die letzte Zeile: ein neuer Ball
+     ersetzt die Break-Zeile durch ein neues Objekt, er aendert das alte
+     nicht. Ein Vergleich der Objekte genuegt also. */
+  letzte=(lauft&&comm.length)?comm[comm.length-1]:null;
+  if(verlauf.length===altFrames&&offenFrame===offenGezeichnet&&
+     soll===neuAnzahl&&letzte===letzteZeile&&!springNach)
+    return;
+
+  /* Nur ans Ende springen, wenn man ohnehin unten steht. Wer gerade
+     zurueckblaettert, soll nicht weggerissen werden. */
+  untenDran=(c.scrollTop+c.clientHeight>=c.scrollHeight-40);
+
+  /* Die Kopfzeilen aller fertigen Frames, dazu der Inhalt des einen
+     aufgeklappten. Alles andere bleibt draussen - genau das haelt den
+     Bildschirm klein und die Reaktion kurz. */
+  if(verlauf.length!==altFrames||offenFrame!==offenGezeichnet){
+    h="";
+    for(i=0;i<verlauf.length;i++){
+      f=verlauf[i];
+      h+=frKopf("Frame "+f.nr+(f.annulliert?" (Re-rack, zählt nicht)":""),
+                i,offenFrame===i);
+      if(offenFrame===i){
+        ev=f.ereignisse||[];
+        for(j=0;j<ev.length;j++)h+=commHtml(ev[j]);
+      }
+    }
+    if(verlauf.length)
+      h+=frKopf("Frame "+(verlauf.length+1)+" (läuft)","lauf",lauft);
+    alt.innerHTML=h;
+    altFrames=verlauf.length;
+    offenGezeichnet=offenFrame;
+    neu.innerHTML=""; neuAnzahl=0;
+    neuGebaut=true;
+  }
+
+  if(!lauft){
+    /* Ein alter Frame ist offen - unten bleibt es leer. */
+    if(neuAnzahl){neu.innerHTML=""; neuAnzahl=0;}
+    letzteZeile=null;
+  }else{
+    /* Zurueck: es sind weniger Zeilen als gezeichnet. Neu aufbauen. */
+    if(soll<neuAnzahl){neu.innerHTML=""; neuAnzahl=0;}
+    /* Die letzte gezeichnete Zeile kann sich geaendert haben. */
+    if(neuAnzahl>0&&neu.lastChild){neu.removeChild(neu.lastChild); neuAnzahl--;}
+    h="";
+    for(i=ab+neuAnzahl;i<comm.length;i++)h+=commHtml(comm[i]);
+    if(h){
+      if(neu.insertAdjacentHTML)neu.insertAdjacentHTML("beforeend",h);
+      else neu.innerHTML=neu.innerHTML+h;
+    }
+    neuAnzahl=soll;
+    letzteZeile=letzte;
+  }
+
+  if(springNach==="oben"){
+    /* Zum angetippten Frame springen, nicht an den Anfang des ganzen
+       Protokolls - bei 15 Frames landete man sonst bei Frame 1. */
+    var kopf=alt.querySelector?alt.querySelector('.frHd.auf'):null;
+    c.scrollTop=kopf?Math.max(0,kopf.offsetTop-4):0;
+  }
+  else if(springNach==="unten"){c.scrollTop=c.scrollHeight;}
+  else if(untenDran&&(h||neuGebaut))c.scrollTop=c.scrollHeight;
+  springNach="";
+}
+
+/* Tipp auf eine Kopfzeile: der angetippte Frame geht auf, der vorher
+   offene zu. Ein zweiter Tipp auf denselben fuehrt zurueck zum
+   laufenden Frame. */
+el("comm").addEventListener("click",function(e){
+  var t=e.target,m;
+  while(t&&t!==this&&!(t.className&&String(t.className).indexOf("frHd")>=0))
+    t=t.parentNode;
+  if(!t||t===this)return;
+  m=t.getAttribute("data-fr");
+  if(m===null)return;
+  if(m==="lauf"){
+    if(offenFrame<0)return;
+    offenFrame=-1; springNach="unten";
+  }else{
+    m=parseInt(m,10);
+    if(offenFrame===m){offenFrame=-1; springNach="unten";}
+    else{offenFrame=m; springNach="oben";}
+  }
+  commZeichnen();
+},false);
+
+function commHtml(c){
+  if(c.typ!=="break")return '<div class="'+(c.m?"me":"")+'">'+c.t+"</div>";
+  var h='<div class="ln'+(c.m?" me":"")+'"><span class="who">'+
+        NAME[c.sp]+(c.pre?" (Anstoß)":"")+":</span>";
+  return h+ballHtml(c.b)+"<b>"+c.p+"</b></div>";
+}
+/* Die gelochten Baelle als farbige Kreise. Protokoll und Break-Ansicht
+   zeichnen sie gleich, nur die Groesse kommt aus dem jeweiligen CSS. */
+function ballHtml(bs){
+  var h="",i,b;
+  for(i=0;i<bs.length;i++){
+    b=bs[i];
+    if(b.f){
+      /* Free Ball: aussen die Farbe des Ball on, innen die gelochte
+         Kugel, darin die Punktzahl. */
+      h+='<i class="'+CIRC[b.v]+" free"+(b.l?" long":"")+(b.g?" gluck":"")+'">'+
+         '<span class="fb '+CIRC[b.pv||b.v]+'">'+b.v+"</span></i>";
+    }else{
+      h+='<i class="'+CIRC[b.v]+(b.l?" long":"")+(b.g?" gluck":"")+'">'+b.v+"</i>";
+    }
+  }
+  return h;
+}
+/* nm sind die Namen der beiden Spieler. Ohne Angabe die des laufenden
+   Matches - ein gespeichertes bringt seine eigenen mit. */
+function commText(c,nm){
+  if(!nm)nm=NAME;
+  if(c.typ!=="break")return c.t;
+  var i,b,t=nm[c.sp]+(c.pre?" (Anstoß)":"")+": ";
+  for(i=0;i<c.b.length;i++){
+    b=c.b[i];
+    t+=(i?", ":"")+(b.f?BALL[b.pv||b.v]+" als Free Ball für "+BALL[b.v]
+                     :BALL[b.v])+(b.l?" (long)":"")+(b.g?" (Fluke)":"");
+  }
+  return t+" – "+c.p;
+}
+
+/* Nach jedem Aufnahmeende: der neue Spieler ist auf Rot,
+   solange noch Rote liegen. Sonst geht es mit der Farbfolge weiter. */
+function resetPhase(){
+  if(S.reds>0)S.phase="red";
+  else{S.phase="sequence";if(S.seq<2)S.seq=2;}
+}
+
+/* Schwarz ist der einzige Ball: die ersten Punkte oder ein Foul beenden
+   den Frame. Bei Gleichstand kommt Schwarz neu auf den Punkt. */
+function goRespot(){
+  S.brk=0; S.pending=null; S.freeAllowed=false; S.snookeredOn=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  S.phase="sequence"; S.seq=7; S.respot=true;
+  say("Gleichstand "+S.sc[0]+"–"+S.sc[1]+" bei nur noch Schwarz – "+
+      "Schwarz kommt neu auf den Punkt.",false);
+}
+
+/* ---------- Zahlen pro Frame ----------
+   Die Zaehler in S laufen ueber das ganze Match; nextFrame() setzt nur
+   den Punktestand zurueck. Damit es Zahlen je Frame gibt, wird am
+   Frame-Ende der Stand aller Zaehler festgehalten. Was in einem Frame
+   passiert ist, ist dann die Differenz zum Frame davor. */
+function paar(a){return [a[0],a[1]];}
+function summeJetzt(){
+  return {pots:paar(S.pots), miss:paar(S.miss),
+          safes:paar(S.safes), snooks:paar(S.snooks),
+          snookWon:paar(S.snookWon),
+          safesWeg:paar(S.safesWeg), flukes:paar(S.flukes),
+          fouls:paar(S.fouls), foulsSnk:paar(S.foulsSnk), fpts:paar(S.fpts),
+          longTry:paar(S.longTry), longHit:paar(S.longHit),
+          posTry:paar(S.posTry), posHit:paar(S.posHit),
+          shots:paar(S.shots), shotMs:paar(S.shotMs),
+          freason:[kopie(S.freason[0]),kopie(S.freason[1])]};
+}
+function kopie(o){var k={},n;for(n in o)if(o.hasOwnProperty(n))k[n]=o[n];return k;}
+
+/* Einen fertigen Frame ablegen. w ist der Gewinner oder null, wenn der
+   Frame annulliert wurde (Re-rack). Die Stoesse waren trotzdem da,
+   deshalb bleibt er in der Statistik stehen. */
+function frameAblegen(w,annul){
+  verlauf.push({nr:verlauf.length+1,
+                punkte:[S.sc[0],S.sc[1]],
+                gewinner:(w===0||w===1)?w:null,
+                annulliert:!!annul,
+                anstoss:S.first,
+                dauerMs:S.frameMs,
+                ereignisse:comm.slice(S.frStart||0),
+                summe:summeJetzt()});
+}
+
+function frameEnd(){
+  S.brk=0; S.pending=null; S.freeAllowed=false; S.snookeredOn=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  /* Ein Safe kurz vor Schluss wird nicht mehr beurteilt - er gilt als
+     gehalten. Sonst wuerde ihn der erste Ball des naechsten Frames
+     nachtraeglich zum Fehler machen. */
+  S.safeOffen=null;
+  if(S.sc[0]===S.sc[1]){goRespot();return;}
+  awardFrame(S.sc[0]>S.sc[1]?0:1,"");
+}
+
+/* Frame einem Spieler zuschreiben - vom Spielstand oder von Hand. */
+function awardFrame(w,zusatz){
+  S.brk=0; S.pending=null; S.respot=false; S.freeAllowed=false;
+  S.snookeredOn=false; S.lastRed=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  S.safeOffen=null;
+  S.fr[w]++;
+  S.phase="done";
+  var erg="Frame beendet"+(zusatz||"")+": "+S.sc[0]+"–"+S.sc[1]+" – "+NAME[w]+
+          " gewinnt. Frames "+S.fr[0]+"–"+S.fr[1]+".";
+  /* Die Ergebniszeile gehoert noch zum Frame, also erst anhaengen,
+     dann den Frame ablegen. */
+  say(erg,false);
+  frameAblegen(w,false);
+  /* Der Frame ist vorbei: Protokollfeld leeren und mit dem Ergebnis
+     neu anfangen. Zurueck geht trotzdem - snap() haelt eine Kopie. */
+  comm.length=0;
+  say(erg,false);
+  S.frStart=comm.length;
+}
+
+/* Das hoechste Break beider Spieler, gerechnet ueber alle Frames, die
+   zaehlen. Annullierte bleiben aussen vor. */
+function hiBrkNeu(){
+  var h=[0,0],i,j,ev,e;
+  for(i=0;i<verlauf.length;i++){
+    if(verlauf[i].annulliert)continue;
+    ev=verlauf[i].ereignisse||[];
+    for(j=0;j<ev.length;j++){
+      e=ev[j];
+      if(e.typ==="break"&&e.p>h[e.sp])h[e.sp]=e.p;
+    }
+  }
+  return h;
+}
+
+/* Re-rack: Frame wird annulliert und neu begonnen (Regel 3.16).
+   Der Punktestand faellt weg, derselbe Spieler stoesst wieder an. */
+function rerack(){
+  snap(); taktAus();
+  /* Erst ablegen, dann zuruecksetzen - sonst waeren Punkte und Dauer
+     des annullierten Frames schon weg. */
+  frameAblegen(null,true);
+  S.frameMs=0;
+  S.sc=[0,0]; S.brk=0; S.cur=S.first; S.phase="red"; S.reds=redsTotal;
+  S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
+  S.snookeredOn=false; S.respot=false; S.lastRed=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  S.safeOffen=null;
+  comm.length=0;
+  /* Der annullierte Frame zaehlt nicht - also darf auch sein hoechstes
+     Break nicht stehen bleiben. Neu aus den Frames rechnen, die zaehlen.
+     Ein Hoechstwert laesst sich nicht einfach abziehen. */
+  S.hiBrk=hiBrkNeu();
+  say("— Re-rack. Punkte gelöscht, "+redsTotal+" Rote. "+NAME[S.first]+
+      " stößt wieder an. —",false);
+  S.frStart=comm.length;
+}
+
+function nextFrame(){
+  snap(); taktAus(); S.frameMs=0;
+  var f=1-S.first;
+  S.sc=[0,0]; S.brk=0; S.cur=f; S.first=f; S.phase="red"; S.reds=redsTotal;
+  S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
+  S.snookeredOn=false; S.respot=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  S.safeOffen=null;
+  say("— Neuer Frame, "+redsTotal+" Rote. "+NAME[f]+" stößt an. —",false);
+  S.frStart=comm.length;
+}
+
+/* ---------- Braucht Snooker? ----------
+   Liegt ein Spieler weiter zurueck, als noch auf dem Tisch liegt, kommt er
+   ohne Foulpunkte nicht mehr vorbei. Ein Snooker bringt mindestens vier
+   Punkte; liegen nur noch Blau, Pink und Schwarz, entsprechend mehr. */
+function foulWert(){
+  return (S.phase==="sequence"&&S.seq>4)?S.seq:4;
+}
+function snookerNoetig(p){
+  if(S.phase==="done")return 0;
+  var d=S.sc[1-p]-S.sc[p], r=onTable(), f=foulWert();
+  if(d<=r)return 0;
+  return Math.ceil((d-r)/f);
+}
+/* Das farbige Feld um den Spielstand. Die Breite kommt vom Namen darueber,
+   gemessen wird nur, wenn wirklich ein Feld gebraucht wird. */
+var frAlt="";
+function snookerFeld(){
+  var p,n,box;
+  for(p=0;p<2;p++){
+    n=snookerNoetig(p);
+    box=el("b"+p);
+    if(!n){box.className="ptBox"; el("k"+p).textContent=""; continue;}
+    box.className="ptBox an s"+(n>4?4:n);
+    el("k"+p).textContent="braucht "+n+" Snooker";
+  }
+}
+
+function draw(){
+  el("s0").textContent=S.sc[0];
+  el("s1").textContent=S.sc[1];
+  var frTxt=S.fr[0]+"–"+S.fr[1];
+  if(frTxt!==frAlt){
+    frAlt=frTxt; el("fr").textContent=frTxt;
+    el("frGap").style.width=el("fr").offsetWidth+"px";
+  }
+  el("n0").textContent=NAME[0];
+  el("n1").textContent=NAME[1];
+  el("n0").className="nm"+(S.cur===0?" act":"");
+  el("n1").className="nm"+(S.cur===1?" act":"");
+  snookerFeld();
+  el("undo").disabled=hist.length===0;
+  var wait=!!S.pending||S.respot||S.phase==="done";
+  el("chcBar").style.display=S.pending?"":"none";
+  el("rspBar").style.display=S.respot?"":"none";
+  el("nfBar").style.display=(S.phase==="done")?"":"none";
+  el("rsp0").textContent=NAME[0];
+  el("rsp1").textContent=NAME[1];
+  el("boffBar").style.display=(S.boff&&!wait)?"":"none";
+  el("boff").textContent=NAME[S.cur].toUpperCase()+" STÖSST AN";
+  if(S.pending){
+    el("chcTxt").textContent="Foul von "+NAME[S.pending.fouler]+" – wer spielt weiter?";
+    el("chOpp").textContent=NAME[1-S.pending.fouler]+" übernimmt";
+    el("chAgain").textContent=NAME[S.pending.fouler]+" nochmal";
+  }
+
+  commZeichnen();
+
+  el("st2").textContent=NAME[S.cur]+" ist am Tisch.";
+  if(tab==="stats")drawStats();
+  if(tab==="breaks")drawBreaks();
+
+  var s3;
+  if(S.phase==="red")s3="Auf Rot ("+S.reds+" übrig).";
+  else if(S.phase==="colour")s3="Auf eine Farbe.";
+  else if(S.phase==="sequence")s3="Auf "+BALL[S.seq]+".";
+  else s3="Frame beendet.";
+  if(S.snookeredOn&&S.phase!=="done")s3+=" GESNOOKERT.";
+  el("st3").textContent=s3;
+
+  var d=S.sc[S.cur]-S.sc[1-S.cur],ot=onTable();
+  el("st4").textContent=S.reds+" Rote, "+
+                        (d>0?d+" Vorsprung":d<0?(-d)+" zurück":"Gleichstand")+
+                        ", "+ot+" auf dem Tisch.";
+
+  if(!S.freeAllowed)freeOn=false;
+
+  var b=el("pad").getElementsByTagName("button"),j,v,ok;
+  for(j=0;j<b.length;j++){
+    v=b[j].getAttribute("data-b");
+    if(!v){b[j].disabled=(S.phase==="done")||wait;continue;}
+    v=parseInt(v,10);
+    if(wait)ok=false;
+    else if(S.phase==="red")ok=(v===1)||freeOn;
+    /* Nach einer Roten darf Rot noch einmal getippt werden:
+       fuer jede weitere Rote, die im selben Stoss gefallen ist. */
+    else if(S.phase==="colour")ok=(v>=2)||(v===1&&S.lastRed&&S.reds>0);
+    else if(S.phase==="sequence")ok=(v===S.seq)||freeOn;
+    else ok=false;
+    b[j].disabled=!ok;
+  }
+  el("tFree").disabled=!S.freeAllowed||wait;
+  el("tLong").disabled=wait;
+  el("tSnook").disabled=wait;
+  el("tFluke").disabled=wait;
+  el("tSnook").className="tg"+(snookOn?" on":"");
+  el("tLong").className="tg"+(longOn?" on":"");
+  el("tFree").className="tg"+(freeOn?" on":"");
+  el("tFluke").className="tg"+(flukeOn?" on":"");
+
+  uhr();
+  autoSaveBald();
+}
+
+function snap(){
+  sichern=true;          /* es wird wieder gespielt, also mitschreiben */
+  hist.push({s:JSON.parse(JSON.stringify(S)),c:comm.slice(),
+             v:verlauf.length,
+             l:longOn,k:snookOn,f:freeOn,x:flukeOn});
+  /* 200 Schritte, das sind grob vier bis fuenf Frames. Ein Frame allein
+     braucht schon 55 bis 80. Jeder Eintrag haelt eine Kopie des
+     Spielstands, rund 500 Zeichen - 200 davon sind etwa 100 KB. Die
+     Laenge kostet keine Rechenzeit: snap() kopiert immer nur einen
+     Stand, egal wie lang die Liste ist. */
+  if(hist.length>200)hist.shift();
+}
+
+function undo(){
+  var h=hist.pop(); if(!h)return;
+  S=h.s; comm=h.c.slice(); longOn=h.l; snookOn=h.k; freeOn=h.f;
+  flukeOn=!!h.x;
+  /* An verlauf wird nur angehaengt, nie geaendert - abschneiden reicht. */
+  if(typeof h.v==="number")verlauf.length=h.v;
+  taktAus();
+}
+
+function pre(){
+  var p="";
+  if(S.boff){p="Anstoß – ";S.boff=false;}
+  return p;
+}
+
+function pot(v){
+  snap(); takt();
+  var me=S.cur,wasRed=false,an=S.boff;
+  if(an)S.boff=false;
+  /* Long Pot: der Schalter war gesetzt, also war es ein Versuch. */
+  if(longOn){S.longTry[me]++;S.longHit[me]++;}
+  if(flukeOn)S.flukes[me]++;
+  /* Der Safe des Gegners wird hier gerade beantwortet: es fallen
+     Punkte, also hat er nicht gehalten. Ein Fluke zaehlt nicht dagegen
+     - der Safe war gut, der andere hatte Glueck. Nur der erste Ball der
+     Aufnahme entscheidet, danach steht das Urteil schon fest. */
+  if(S.safeOffen===1-me){
+    if(!flukeOn)S.safesWeg[1-me]++;
+    S.safeOffen=null;
+  }
+  /* Zweite Baelle: der vorige Ball dieser Aufnahme hat gesessen und
+     dieser hier auch - also ein gelungener zweiter Ball. Spaeter die
+     Grundlage fuer das Rating (Break-Staerke). */
+  if(S.posOpen){S.posTry[me]++;S.posHit[me]++;}
+  if(S.phase==="red"&&freeOn){
+    /* Der Free Ball ist eine Farbe, die als Rot gilt: 1 Punkt,
+       sie wird wieder aufgesetzt, die Roten bleiben alle liegen. */
+    S.sc[me]+=1;S.brk+=1;S.pots[me]++;wasRed=true;
+    sayPot(me,1,S.brk,true,an,v);
+    S.phase="colour";
+  }else if(S.phase==="sequence"&&freeOn){
+    /* Free Ball in der Farbfolge: es zaehlt der Wert des Ball on,
+       der Free Ball wird aufgesetzt, die Farbe bleibt dieselbe. */
+    S.sc[me]+=S.seq;S.brk+=S.seq;S.pots[me]++;
+    sayPot(me,S.seq,S.brk,true,an,v);
+  }else if(S.phase==="red"&&v===1){
+    S.reds--; S.sc[me]+=1; S.brk+=1; S.pots[me]++; wasRed=true;
+    sayPot(me,1,S.brk,false,an);
+    S.phase="colour";
+  }else if(S.phase==="colour"&&v===1){
+    /* Noch eine Rote aus demselben Stoss. Die Phase bleibt "Farbe". */
+    S.reds--; S.sc[me]+=1; S.brk+=1; S.pots[me]++; wasRed=true;
+    sayPot(me,1,S.brk,false,an);
+  }else if(S.phase==="colour"){
+    S.sc[me]+=v; S.brk+=v; S.pots[me]++;
+    sayPot(me,v,S.brk,false,an);
+    S.phase=(S.reds>0)?"red":"sequence";
+    if(S.phase==="sequence")S.seq=2;
+  }else if(S.phase==="sequence"){
+    S.sc[me]+=v; S.brk+=v; S.pots[me]++;
+    sayPot(me,v,S.brk,false,an);
+    S.seq=v+1;
+  }
+  S.lastRed=wasRed; S.posOpen=true;
+  if(S.brk>S.hiBrk[me])S.hiBrk[me]=S.brk;
+  longOn=false; freeOn=false; flukeOn=false; S.freeAllowed=false; S.snookeredOn=false;
+  if(S.phase==="sequence"&&S.seq>7)frameEnd();
+  /* Schwarz ist gerade der einzige Ball geworden. Steht es gleich,
+     wird Schwarz neu aufgesetzt und ausgespielt. */
+  else if(S.phase==="sequence"&&S.seq===7&&!S.respot&&S.sc[0]===S.sc[1])goRespot();
+}
+
+function endVisit(kind,opt){
+  snap(); takt();
+  closeBreak();
+  var me=S.cur,n=NAME[me],p=pre(),extra="";
+  if(kind!=="breakoff"){
+    /* Der letzte Pot hat keinen Nachfolger gefunden: zweiter Ball misslungen. */
+    if(S.posOpen){S.posTry[me]++;}
+    S.posOpen=false;
+    /* Ein Long-Pot-Versuch, der nicht gefallen ist. */
+    if(longOn&&(kind==="miss"||kind==="foul"))S.longTry[me]++;
+  }
+  /* Dieser Zug bringt dem Gegner keine Punkte - sein Safe hat also
+     gehalten. Auch ein Foul zaehlt als gehalten: der Safe hat sogar
+     Punkte eingebracht. */
+  if(S.safeOffen===1-me)S.safeOffen=null;
+  var wasSnook=snookOn;          /* hat ER gerade einen Snooker gelegt? */
+  /* Die Breakpunkte stehen schon in der Break-Zeile darueber. */
+  var bt="";
+
+  if(kind==="breakoff"){
+    say(n+" stößt an.",me===0,{typ:"anstoss",sp:me});
+  }else if(kind==="safe"){
+    S.safes[me]++;
+    S.safeOffen=me;              /* ob er haelt, zeigt der naechste Zug */
+    if(snookOn){
+      S.snooks[me]++;
+      say(p+n+" spielt Safe und legt einen Snooker."+bt,me===0,
+          {typ:"safe",sp:me,snooker:true});
+    }else{
+      say(p+n+" spielt Safe"+(S.brk>0?".":" – keine Punkte.")+bt,me===0,
+          {typ:"safe",sp:me,snooker:false});
+    }
+  }else if(kind==="miss"){
+    S.miss[me]++;
+    say(p+n+" verfehlt."+bt,me===0,{typ:"miss",sp:me,long:!!longOn});
+  }else if(kind==="foul"){
+    S.fouls[me]++; S.fpts[me]+=opt.v; S.sc[1-me]+=opt.v;
+    S.freason[me][opt.r]=(S.freason[me][opt.r]||0)+1;
+    if(opt.reds>0){
+      if(opt.reds>S.reds)opt.reds=S.reds;
+      S.reds-=opt.reds;
+      extra=", "+opt.reds+(opt.reds>1?" Rote":" Rot")+" gefallen";
+    }
+    if(opt.snk){
+      /* Foul aus dem Snooker: der Snooker des Gegners hat sich gelohnt. */
+      S.foulsSnk[me]++; S.snookWon[1-me]++;
+      say(p+n+": Foul aus dem Snooker – "+opt.r+", "+opt.v+" an "+
+          NAME[1-me]+extra+"."+bt,me===0,
+          {typ:"foul",sp:me,punkte:opt.v,grund:opt.r,lage:"snooker",
+           rote:opt.reds||0,long:!!longOn});
+    }else{
+      say(p+n+": Foul bei freier Bahn – "+opt.r+", "+opt.v+" an "+
+          NAME[1-me]+extra+"."+bt,me===0,
+          {typ:"foul",sp:me,punkte:opt.v,grund:opt.r,lage:"frei",
+           rote:opt.reds||0,long:!!longOn});
+    }
+    /* War Schwarz der einzige Ball, beendet das Foul den Frame. */
+    if(S.phase==="sequence"&&S.seq===7){frameEnd();return;}
+    /* Wer weiterspielt, wird auf dem Hauptschirm entschieden. */
+    S.brk=0; S.pending={fouler:me}; S.freeAllowed=false; S.snookeredOn=false;
+    snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+    return;
+  }
+
+  S.brk=0;
+  S.cur=1-me;
+  S.freeAllowed=false;
+  /* Nach einem Safe mit Snooker steht der neue Spieler im Snooker. */
+  S.snookeredOn=(kind==="safe"&&wasSnook);
+  resetPhase();
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+}
+
+/* Entscheidung nach einem Foul */
+function decideFoul(again){
+  snap(); taktAus();
+  var f=S.pending.fouler;
+  if(again){
+    S.cur=f;
+    S.freeAllowed=false;            /* zurückgegeben: kein Free Ball */
+    say(NAME[1-f]+" gibt zurück – "+NAME[f]+" muss nochmal.",f===0);
+  }else{
+    S.cur=1-f;
+    S.freeAllowed=true;
+    say(NAME[1-f]+" übernimmt.",(1-f)===0);
+  }
+  S.pending=null;
+  resetPhase();
+}
+
+function now(){return (window.performance&&performance.now)?performance.now():Date.now();}
+function measure(t0){
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    var ms=Math.round(now()-t0);
+    if(ms>worst)worst=ms;
+    var e=el("lat");
+    e.className="lat"+(worst>100?" bad":"");
+    e.innerHTML="Reaktion "+ms+" ms<br><b>max "+worst+" ms</b>";
+  });});
+}
+
+el("pad").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b||b.disabled)return;
+  var t0=now(),v=b.getAttribute("data-b");
+  if(v){pot(parseInt(v,10));draw();}
+  else{
+    var a=b.getAttribute("data-a");
+    if(a==="foul"){openFoul();}
+    else{endVisit(a);draw();}
+  }
+  measure(t0);
+},false);
+
+el("chOpp").addEventListener("click",function(){
+  if(!S.pending)return;
+  var t0=now(); decideFoul(false); draw(); measure(t0);
+},false);
+el("chAgain").addEventListener("click",function(){
+  if(!S.pending)return;
+  var t0=now(); decideFoul(true); draw(); measure(t0);
+},false);
+
+el("boff").addEventListener("click",function(){
+  var t0=now(); endVisit("breakoff"); draw(); measure(t0);
+},false);
+
+el("undo").addEventListener("click",function(){
+  if(el("undo").disabled)return;
+  var t0=now();undo();draw();measure(t0);
+},false);
+
+function tog(id,get,set){
+  el(id).addEventListener("click",function(){
+    if(el(id).disabled)return;
+    var t0=now(); set(!get()); draw(); measure(t0);
+  },false);
+}
+tog("tLong",function(){return longOn;},function(x){longOn=x;});
+tog("tSnook",function(){return snookOn;},function(x){snookOn=x;});
+tog("tFree",function(){return freeOn;},function(x){freeOn=x;});
+tog("tFluke",function(){return flukeOn;},function(x){flukeOn=x;});
+
+
+function group(id,cb){
+  el(id).addEventListener("click",function(e){
+    var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+    if(!b)return;
+    var kids=el(id).getElementsByTagName("button"),i;
+    for(i=0;i<kids.length;i++)kids[i].className="";
+    b.className="on";
+    if(cb)cb(b);
+  },false);
+}
+function pick(id,idx){
+  var kids=el(id).getElementsByTagName("button"),i;
+  for(i=0;i<kids.length;i++)kids[i].className=(i===idx?"on":"");
+}
+
+/* ---------- Foul ---------- */
+/* Die Foul-Seite fragt eine Kategorie nach der anderen. Nichts ist
+   vorausgewaehlt. Erst wenn eine Frage beantwortet ist, klappt die
+   naechste auf. Beantwortete Fragen schrumpfen zu einer Zeile mit der
+   Antwort und lassen sich antippen, wenn man sie aendern will. */
+var BCLS=["","k-rot","k-gelb","k-gruen","k-braun","k-blau","k-pink","k-schwarz"];
+var RTXT={nix:"Weiß trifft nichts",weiss:"Weiß gefallen",
+          falsch:"Falscher Ball zuerst",drin:"Falsche Kugel gefallen",
+          weg:"Kugel vom Tisch",sonst:"Sonstiges"};
+var RE=["nix","weiss","falsch","drin","weg","sonst"];
+
+var foulPick,foulSeen,foulOffen;
+function resetFoul(){
+  foulPick={lage:null,r:null,on:0,which:0,fallen:{},fallenSet:false,
+            reds:0,manual:0};
+  foulSeen={}; foulOffen={};
+}
+resetFoul();
+
+/* Der Ball on bestimmt die Untergrenze der Strafe.
+   Nach einer Roten kennt die App die Farbe nicht - sie muss fragen. */
+function ballOn(){
+  if(S.phase==="red")return 1;
+  if(S.phase==="colour")return foulPick.on;
+  if(S.phase==="sequence")return S.seq;
+  return 1;
+}
+/* Untergrenze: 4, der Ball on und die Kugel, die das Foul ausgeloest hat.
+   Alles darunter kann die Strafe nicht mehr erhoehen. */
+function foulFloor(){
+  var v=4,on=ballOn();
+  if(on>v)v=on;
+  if(foulPick.which>v)v=foulPick.which;
+  return v;
+}
+/* Strafe = Untergrenze, oder eine teurere Farbe die mitgefallen ist. */
+function foulValue(){
+  var v=foulFloor(),i;
+  for(i=2;i<=7;i++)if((foulPick.fallen[i]||0)>0&&i>v)v=i;
+  if(foulPick.r==="sonst"&&foulPick.manual>v)v=foulPick.manual;
+  return v;
+}
+/* Eine Rote vom Tisch ist aus dem Spiel - also mindestens 1. */
+function foulRedMin(){
+  var m=(foulPick.r==="weg"&&foulPick.which===1)?1:0;
+  if(m>S.reds)m=S.reds;
+  return m;
+}
+/* Ist Rot der Ball on, kann Rot nie der falsch getroffene Ball sein.
+   Und ohne Rote auf dem Tisch kann auch keine vom Tisch fliegen. */
+function rotVersteckt(){
+  return (foulPick.r==="falsch"&&S.phase==="red")||S.reds===0;
+}
+/* Mehr Rote als noch liegen gibt es nicht, und mehr als drei
+   auf einen Stoss kommen praktisch nicht vor. */
+function rotMax(){ return S.reds<3?S.reds:3; }
+function rotText(){
+  if(!foulPick.reds)return "Rot";
+  return foulPick.reds===1?"1 Rote":foulPick.reds+" Rote";
+}
+function anzFallen(){var n=0,i;for(i=2;i<=7;i++)if(foulPick.fallen[i])n++;return n;}
+
+/* Welche Kategorien diese Seite braucht, in dieser Reihenfolge. */
+function foulSchritte(){
+  var l=[];
+  l.push({k:"lage",t:"LAGE"});
+  l.push({k:"r",t:"WAS IST PASSIERT"});
+  if(S.phase==="colour")l.push({k:"on",t:"WELCHE FARBE NOMINIERT"});
+  if(foulPick.r==="falsch"||foulPick.r==="weg")l.push({k:"which",t:"WELCHE KUGEL"});
+  l.push({k:"fallen",t:"KUGELN GEFALLEN"});
+  if(foulPick.r==="sonst")l.push({k:"manual",t:"PUNKTE AN GEGNER"});
+  return l;
+}
+function foulBeantwortet(k){
+  if(k==="lage")return foulPick.lage!==null;
+  if(k==="r")return !!foulPick.r;
+  if(k==="on")return foulPick.on>0;
+  if(k==="which")return foulPick.which!==0;
+  if(k==="fallen")return foulPick.fallenSet;
+  if(k==="manual")return foulPick.manual>0;
+  return true;
+}
+function foulAntwort(k){
+  if(k==="lage")return foulPick.lage===1?"Gesnookert":"Freie Bahn";
+  if(k==="r")return RTXT[foulPick.r];
+  if(k==="on")return BALL[foulPick.on];
+  if(k==="which")return foulPick.which===-1?"Weiß":BALL[foulPick.which];
+  if(k==="fallen"){
+    var t=[],i;
+    if(foulPick.reds)t.push(rotText());
+    for(i=2;i<=7;i++)if(foulPick.fallen[i])t.push(BALL[i]);
+    return t.length?t.join(" + "):"Keine";
+  }
+  if(k==="manual")return foulPick.manual+" Punkte";
+  return "";
+}
+function foulAntwortKlasse(k){
+  if(k==="on")return BCLS[foulPick.on];
+  if(k==="which")return foulPick.which===-1?"k-weiss":BCLS[foulPick.which];
+  if(k==="fallen"&&anzFallen()===1&&!foulPick.reds){
+    var i;for(i=2;i<=7;i++)if(foulPick.fallen[i])return BCLS[i];
+  }
+  return "";
+}
+
+function foulKnopf(k,v,t,an,aus,cls){
+  return '<button data-k="'+k+'" data-v="'+v+'" class="'+cls+(an?" on":"")+'"'+
+         (aus?" disabled":"")+'>'+t+'</button>';
+}
+function foulOptionen(k){
+  var h="",i;
+  if(k==="lage"){
+    h+=foulKnopf("lage",0,"Freie Bahn",foulPick.lage===0,false,"");
+    h+=foulKnopf("lage",1,"Gesnookert",foulPick.lage===1,false,"");
+  }else if(k==="r"){
+    for(i=0;i<RE.length;i++)
+      h+=foulKnopf("r",RE[i],RTXT[RE[i]],foulPick.r===RE[i],false,"");
+  }else if(k==="on"){
+    for(i=2;i<=7;i++)h+=foulKnopf("on",i,BALL[i],foulPick.on===i,false,BCLS[i]);
+  }else if(k==="which"){
+    /* Vom Tisch fliegen kann auch die Weisse. Sie kostet nichts extra,
+       gehoert aber ins Protokoll. Beim falsch getroffenen Ball hat sie
+       nichts zu suchen - sie ist ja der Stossball. */
+    if(foulPick.r==="weg")
+      h+=foulKnopf("which",-1,"Weiß",foulPick.which===-1,false,"k-weiss");
+    for(i=1;i<=7;i++){
+      if(i===1&&rotVersteckt())continue;
+      h+=foulKnopf("which",i,BALL[i],foulPick.which===i,false,BCLS[i]);
+    }
+  }else if(k==="fallen"){
+    /* Jede Kugel ist waehlbar, auch eine billige. Sie erhoeht die Strafe
+       nicht, haelt aber fest, was wirklich passiert ist.
+       Rot zaehlt bei jedem Tippen hoch, denn Rote bleiben aus dem Spiel. */
+    if(S.reds>0)h+=foulKnopf("fallen",1,rotText(),foulPick.reds>0,false,BCLS[1]);
+    for(i=2;i<=7;i++)
+      h+=foulKnopf("fallen",i,BALL[i],!!foulPick.fallen[i],false,BCLS[i]);
+    h+=foulKnopf("fallen",0,"Keine",foulPick.fallenSet&&anzFallen()===0&&!foulPick.reds,false,"");
+  }else if(k==="manual"){
+    /* Bei "Sonstiges": nichts unter der Untergrenze anbieten. */
+    var g2=foulFloor();
+    for(i=4;i<=7;i++)h+=foulKnopf("manual",i,""+i,foulPick.manual===i,i<g2,"");
+  }
+  return h;
+}
+function foulOptKlasse(k){
+  if(k==="lage")return "row zwei";
+  if(k==="on"||k==="which"||k==="fallen")return "balls";
+  if(k==="manual")return "row schmal";
+  return "row";
+}
+
+/* Antworten, die durch eine spaetere Aenderung ungueltig geworden sind,
+   wieder einsammeln. */
+function foulAufraeumen(){
+  var gr=foulFloor(),i;
+  var mn=foulRedMin();
+  if(foulPick.reds===null||foulPick.reds<mn)foulPick.reds=mn;
+  if(foulPick.reds>rotMax())foulPick.reds=rotMax();
+  if(foulPick.r!=="falsch"&&foulPick.r!=="weg")foulPick.which=0;
+  if(foulPick.r!=="sonst")foulPick.manual=0;
+  if(foulPick.manual&&foulPick.manual<gr)foulPick.manual=gr;
+  if(foulPick.which===1&&rotVersteckt())foulPick.which=0;
+  if(foulPick.which===-1&&foulPick.r!=="weg")foulPick.which=0;
+  if(S.phase!=="colour")foulPick.on=0;
+}
+
+function drawFoul(){
+  foulAufraeumen();
+  var st=foulSchritte(),i,ai=-1;
+  for(i=0;i<st.length;i++)if(!foulBeantwortet(st[i].k)){ai=i;break;}
+  var letzte=(ai<0)?st.length-1:ai;
+  var h="",s,akt,cls;
+  for(i=0;i<=letzte;i++){
+    s=st[i]; akt=(i===ai);
+    cls="grp"+(akt?" aktiv":" fertig")+(foulSeen[s.k]?"":" neu");
+    if(akt||foulOffen[s.k]||!foulBeantwortet(s.k)){
+      h+='<div class="'+cls+'"><h3>'+s.t+'</h3><div class="'+
+         foulOptKlasse(s.k)+'">'+foulOptionen(s.k)+'</div></div>';
+    }else{
+      h+='<div class="'+cls+' kurz"><h3>'+s.t+'</h3>'+
+         '<button class="chip on '+foulAntwortKlasse(s.k)+'" data-auf="'+s.k+'">'+
+         foulAntwort(s.k)+'</button></div>';
+    }
+  }
+  el("fGroups").innerHTML=h;
+  for(i=0;i<=letzte;i++)foulSeen[st[i].k]=true;
+
+  /* Woran gerade gespielt wird - steht in der Ueberschrift, damit man
+     die Punkte einordnen kann. */
+  el("fPhase").textContent="– "+(S.phase==="red"?"Rot on":"Farbe on");
+
+  /* Der Knopf zeigt immer, was das Foul im Moment kostet. Wer die
+     restlichen Fragen nicht braucht, tippt ihn einfach sofort.
+     Solange offen ist, was passiert ist, steht er auf 0 und ist gesperrt. */
+  var ok=el("fOk");
+  /* Ohne den Grund und - bei Farbe on - ohne die nominierte Farbe stimmt
+     die Strafe nicht. Diese beiden lassen sich nicht ueberspringen. */
+  var pflicht=(!!foulPick.r)&&(S.phase!=="colour"||foulPick.on>0);
+  ok.disabled=!pflicht;
+  ok.textContent=(pflicht?foulValue():0)+" Foulpunkte eintragen";
+}
+
+el("fGroups").addEventListener("click",function(e){
+  var b=e.target;
+  while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b||b.disabled)return;
+  var auf=b.getAttribute("data-auf");
+  if(auf){foulOffen[auf]=true;drawFoul();return;}
+  var k=b.getAttribute("data-k"),v=b.getAttribute("data-v");
+  if(!k)return;
+  /* Gefallene Farben bleiben offen - da darf man mehrere antippen. */
+  if(k!=="fallen")foulOffen.fallen=false;
+  foulOffen[k]=false;
+  if(k==="lage")foulPick.lage=parseInt(v,10);
+  else if(k==="r")foulPick.r=v;
+  else if(k==="on")foulPick.on=parseInt(v,10);
+  else if(k==="which")foulPick.which=parseInt(v,10);
+  else if(k==="fallen"){
+    var n=parseInt(v,10);
+    if(n===0){foulPick.fallen={};foulPick.reds=0;}
+    else if(n===1){
+      var mx=rotMax();
+      foulPick.reds=(foulPick.reds===null?0:foulPick.reds)+1;
+      if(foulPick.reds>mx)foulPick.reds=foulRedMin();
+      foulOffen.fallen=true;
+    }
+    else{foulPick.fallen[n]=foulPick.fallen[n]?0:1;foulOffen.fallen=true;}
+    foulPick.fallenSet=true;
+  }
+  else if(k==="manual")foulPick.manual=parseInt(v,10);
+  drawFoul();
+},false);
+
+function openFoul(){
+  resetFoul();
+  /* Hat der Gegner vorher "Safe + Snooker" getippt, weiss die App die
+     Lage schon. Sie steht dann gleich als beantwortete Zeile da und
+     laesst sich per Antippen aendern. */
+  if(S.snookeredOn)foulPick.lage=1;
+  drawFoul();
+  el("ovFoul").className="ov on";
+}
+el("fCancel").addEventListener("click",function(){
+  el("ovFoul").className="ov"; resetFoul();
+},false);
+el("fOk").addEventListener("click",function(){
+  if(el("fOk").disabled)return;
+  var t0=now();
+  el("ovFoul").className="ov";
+  endVisit("foul",{r:RTXT[foulPick.r],v:foulValue(),
+                   reds:foulPick.reds,snk:foulPick.lage===1});
+  resetFoul();
+  draw(); measure(t0);
+},false);
+
+/* ---------- Respot Black / naechstes Frame ---------- */
+function doRespot(n){
+  snap(); taktAus(); S.cur=n; S.respot=false;
+  say(NAME[n]+" spielt auf die Schwarze.",n===0);
+}
+el("rsp0").addEventListener("click",function(){
+  if(!S.respot)return; var t0=now(); doRespot(0); draw(); measure(t0);
+},false);
+el("rsp1").addEventListener("click",function(){
+  if(!S.respot)return; var t0=now(); doRespot(1); draw(); measure(t0);
+},false);
+el("nextFrame").addEventListener("click",function(){
+  if(S.phase!=="done")return;
+  var t0=now(); nextFrame(); draw(); measure(t0);
+},false);
+
+/* ---------- Frage-Overlay ---------- */
+var askFn1=null,askFn2=null,askFn3=null;
+function askOpen(titel,koerper,l1,f1,l2,f2,l3,f3){
+  el("askT").textContent=titel;
+  el("askBody").innerHTML=koerper||"";
+  el("ask1").textContent=l1; askFn1=f1;
+  if(l2){el("ask2").style.display="";el("ask2").textContent=l2;askFn2=f2;}
+  else{el("ask2").style.display="none";askFn2=null;}
+  if(l3){el("ask3").style.display="";el("ask3").textContent=l3;askFn3=f3;}
+  else{el("ask3").style.display="none";askFn3=null;}
+  el("askC").style.display="";
+  el("ovAsk").className="ov on";
+}
+/* Für Fragen, die beantwortet werden müssen. */
+function askOhneAbbruch(){el("askC").style.display="none";}
+function askClose(){el("ovAsk").className="ov";askFn1=null;askFn2=null;askFn3=null;}
+el("askC").addEventListener("click",askClose,false);
+function askTap(get){
+  return function(){var f=get(); askClose(); if(f){f();draw();}};
+}
+el("ask1").addEventListener("click",askTap(function(){return askFn1;}),false);
+el("ask2").addEventListener("click",askTap(function(){return askFn2;}),false);
+el("ask3").addEventListener("click",askTap(function(){return askFn3;}),false);
+
+/* ---------- Zusammenfassung und Speichern ---------- */
+function sumRow(t,a,b,cls){
+  return '<div class="'+(cls||"")+'"><span>'+t+"</span><b>"+a+"</b><b>"+b+"</b></div>";
+}
+function sumHtml(){
+  var h='<div class="sum">';
+  h+=sumRow("",NAME[0],NAME[1],"hd");
+  h+=sumRow("Frames",S.fr[0],S.fr[1]);
+  h+=sumRow("Punkte im laufenden Frame",S.sc[0],S.sc[1]);
+  h+='<div class="gap"></div>';
+  h+=sumRow("Bälle gelocht",S.pots[0],S.pots[1]);
+  h+=sumRow("davon Flukes",S.flukes[0],S.flukes[1]);
+  h+=sumRow("Nicht gelocht",S.miss[0],S.miss[1]);
+  h+='<div class="gap"></div>';
+  h+=sumRow("Safes",S.safes[0],S.safes[1]);
+  h+=sumRow("davon gehalten",S.safes[0]-S.safesWeg[0],S.safes[1]-S.safesWeg[1]);
+  h+=sumRow("davon mit Snooker",S.snooks[0],S.snooks[1]);
+  h+=sumRow("Snooker brachte ein Foul",S.snookWon[0],S.snookWon[1]);
+  h+='<div class="gap"></div>';
+  h+=sumRow("Fouls",S.fouls[0],S.fouls[1]);
+  h+=sumRow("davon aus dem Snooker",S.foulsSnk[0],S.foulsSnk[1]);
+  h+=sumRow("Foulpunkte abgegeben",S.fpts[0],S.fpts[1]);
+  h+='<div class="gap"></div>';
+  h+=sumRow("Stöße",S.shots[0],S.shots[1]);
+  h+=sumRow("Stoßzeit",sekTxt(S.shotMs[0],S.shots[0]),
+                       sekTxt(S.shotMs[1],S.shots[1]));
+  var gz=S.shotMs[0]+S.shotMs[1],tz=gz>0?Math.round(S.shotMs[0]*100/gz):50;
+  h+=sumRow("Tischzeit",tz+"%",(gz>0?100-tz:50)+"%");
+  h+=sumRow("Spielzeit",msTxt(S.matchMs),"");
+  var keys=["nix","weiss","falsch","drin","weg","sonst"],i,k,a,b,erst=true;
+  for(i=0;i<keys.length;i++){
+    k=RTXT[keys[i]]; a=S.freason[0][k]||0; b=S.freason[1][k]||0;
+    if(a||b){
+      if(erst){h+='<div class="gap"></div>';erst=false;}
+      h+=sumRow(k,a,b);
+    }
+  }
+  h+="</div>";
+  return h;
+}
+/* Kennung des laufenden Matches. Wird beim Start vergeben und beim
+   Fortsetzen mitgenommen - so ersetzt ein fortgesetztes Match seinen
+   alten Eintrag, statt ein zweites Mal in der Liste zu landen. */
+var matchId=null;
+function neueMatchId(){
+  return "M"+Date.now()+"-"+Math.floor(Math.random()*1000);
+}
+
+/* Der volle Spielstand. Damit laesst sich ein Match spaeter da
+   fortsetzen, wo es aufgehoert hat. Gleiche Form wie das laufende
+   Mitschreiben. */
+function standJetzt(){
+  return {v:2,zeit:Date.now(),S:S,comm:comm,verlauf:verlauf,mid:matchId,
+          namen:[NAME[0],NAME[1]],rote:redsTotal,liga:aktuelleLiga,
+          lg:longOn,sn:snookOn,fb:freeOn,flk:flukeOn};
+}
+
+/* Das Protokoll als Text, Frame fuer Frame, aus einer Frame-Liste
+   gebaut. Frueher lag dieser Text zusaetzlich im Match - dieselben
+   Zeilen ein zweites Mal. Jetzt entsteht er erst beim Hinsehen. */
+function protokollAus(l,nm){
+  var out=[],i,j,ev,f;
+  l=l||[];
+  for(i=0;i<l.length;i++){
+    f=l[i];
+    out.push("— Frame "+f.nr+(f.annulliert?" (Re-rack, zählt nicht)":"")+" —");
+    ev=f.ereignisse||[];
+    for(j=0;j<ev.length;j++)out.push(commText(ev[j],nm));
+  }
+  return out;
+}
+
+/* ---------- Beim Wegschreiben schlank machen ----------
+   Der Stoss-fuer-Stoss-Verlauf ist nur waehrend eines Frames wichtig:
+   wenn unklar ist, wer was gemacht hat. Danach zaehlen die Zahlen, und
+   die stehen vollstaendig in "summe" jedes Frames.
+
+   Deshalb bleiben beim Wegschreiben nur Breaks und Fouls stehen - die
+   braucht die Auswertung Ball fuer Ball - dazu die schlichten
+   Hinweiszeilen. Safes und Fehlversuche fliegen raus. Der laufende und
+   der zuletzt beendete Frame behalten alles, falls die Frage erst nach
+   dem Frame aufkommt.
+
+   Im Arbeitsspeicher aendert sich nichts, nur das Geschriebene wird
+   kleiner: aus rund 65 KB je Match werden etwa 13. */
+function evWichtig(c){
+  return c.typ==="break"||!c.e||c.e.typ==="foul";
+}
+function verlaufSchlank(l){
+  var r=[],i,j,f,n,ev,k,voll;
+  l=l||[];
+  voll=l.length-1;
+  if(voll>0&&l[voll]&&l[voll].unvollstaendig)voll--;
+  for(i=0;i<l.length;i++){
+    f=l[i];
+    if(i>=voll||!f.ereignisse||!f.ereignisse.length){r.push(f);continue;}
+    n={};
+    for(k in f)if(f.hasOwnProperty(k))n[k]=f[k];
+    ev=[];
+    for(j=0;j<f.ereignisse.length;j++)
+      if(evWichtig(f.ereignisse[j]))ev.push(f.ereignisse[j]);
+    n.ereignisse=ev;
+    n.gekuerzt=true;
+    r.push(n);
+  }
+  return r;
+}
+
+/* Der Stand zum Weiterspielen, ohne das, was schon woanders steht.
+   verlauf kommt beim Fortsetzen aus dem Match selbst, und von comm
+   wird nur der laufende Frame gebraucht - die fertigen stecken in
+   verlauf. Deshalb faengt frStart in der Kopie wieder bei null an. */
+function standSchlank(){
+  var st=standJetzt(),ab=(verlauf.length?(st.S.frStart||0):0),s2={},n;
+  for(n in st.S)if(st.S.hasOwnProperty(n))s2[n]=st.S[n];
+  s2.frStart=0;
+  st.S=s2;
+  st.comm=comm.slice(ab);
+  delete st.verlauf;
+  return st;
+}
+
+/* Stand und Match wieder zusammensetzen. Aeltere Matches tragen den
+   verlauf noch im Stand - dann bleibt er, wie er ist. */
+function standAus(m){
+  var l,i;
+  if(!m||!m.stand)return null;
+  if(!m.stand.verlauf){
+    l=(m.verlauf||[]).slice();
+    /* Der angefangene Frame steht im Match mit drin, damit er seine
+       Zahlen behaelt. In die Liste der fertigen Frames gehoert er
+       nicht - er laeuft ja noch, und comm hat seine Zeilen schon. */
+    while(l.length&&l[l.length-1].unvollstaendig)l.pop();
+    m.stand.verlauf=l;
+  }
+  return m.stand;
+}
+
+function matchRecord(){
+  if(!matchId)matchId=neueMatchId();
+  return {id:matchId,
+          gespeichert:new Date().toISOString(),
+          spieler:[NAME[0],NAME[1]], rote:redsTotal,
+          liga:aktuelleLiga,
+          stand:standSchlank(),
+          frames:[S.fr[0],S.fr[1]], punkte:[S.sc[0],S.sc[1]],
+          pots:S.pots, nichtGelocht:S.miss, safes:S.safes,
+          snooks:S.snooks, snookWon:S.snookWon,
+          safesWeg:S.safesWeg, flukes:S.flukes,
+          fouls:S.fouls, foulsSnk:S.foulsSnk, fpts:S.fpts,
+          freason:S.freason,
+          longTry:S.longTry, longHit:S.longHit, hiBrk:S.hiBrk,
+          posTry:S.posTry, posHit:S.posHit,
+          zeit:{stoesse:S.shots, stossMs:S.shotMs,
+                spielMs:S.matchMs, pausenMs:S.pausenMs},
+          /* Alle Frames mit ihren Ereignissen und dem Stand aller
+             Zaehler am Frame-Ende. Grundlage der Auswertung. Der
+             angefangene Frame ist als unvollstaendig dabei. Aeltere
+             Frames tragen nur noch Breaks und Fouls - siehe
+             verlaufSchlank(). */
+          verlauf:verlaufSchlank(frameListe())};
+}
+/* Manche Browser sperren den lokalen Speicher (z.B. beim Oeffnen als
+   Datei). Dann bleibt der Weg ueber eine heruntergeladene Datei. */
+var LSOK=(function(){
+  try{window.localStorage.setItem("_probe","1");
+      window.localStorage.removeItem("_probe");return true;}
+  catch(e){return false;}
+})();
+
+/* ---------- Laufendes Match sichern ----------
+   Nach jedem Tipp wird der ganze Stand weggeschrieben. Geht Chrome aus
+   oder ist der Akku leer, fragt die App beim nächsten Start, ob
+   weitergespielt werden soll. Die Zurück-Schritte werden nicht
+   mitgesichert - nach dem Fortsetzen fängt "Zurück" wieder bei null an. */
+/* sichern schaltet das Mitschreiben an und aus. Aus ist es, solange
+   noch nichts gespielt wurde und nachdem ein Match abgelegt wurde -
+   sonst würde der leere Startzustand den alten Stand überschreiben.
+   Der erste echte Spielzug schaltet es über snap() wieder an. */
+var LKEY="snooker_laufend", sichern=false;
+/* Geschrieben wird erst, wenn das Bild steht. Das Schreiben selbst haelt
+   den Browser an, und der Stand waechst mit jedem Frame - im Tipp-Moment
+   hat es dort nichts zu suchen. Mehrere schnelle Tipps ergeben einen
+   einzigen Schreibvorgang. */
+var saveTimer=null;
+function autoSaveBald(){
+  if(saveTimer)return;
+  saveTimer=setTimeout(function(){saveTimer=null; autoSave();},120);
+}
+/* Beim Zumachen der Seite darf nichts offen bleiben. */
+function autoSaveJetzt(){
+  if(saveTimer){clearTimeout(saveTimer); saveTimer=null; autoSave();}
+}
+function autoSave(){
+  if(!LSOK||!S||!sichern)return;
+  try{
+    var st=standSchlank();
+    st.verlauf=verlaufSchlank(verlauf);
+    window.localStorage.setItem(LKEY,JSON.stringify(st));
+  }catch(e){}
+}
+function laufendLesen(){
+  if(!LSOK)return null;
+  try{
+    var r=JSON.parse(window.localStorage.getItem(LKEY)||"null");
+    return (r&&r.S&&r.namen)?r:null;
+  }catch(e){return null;}
+}
+function laufendWeg(){
+  if(!LSOK)return;
+  try{window.localStorage.removeItem(LKEY);}catch(e){}
+}
+
+/* Nur die STAENDE neuesten Matches behalten den vollen Spielstand.
+   Sonst laeuft der Speicher des Tablets mit den Jahren voll. Aeltere
+   Matches bleiben vollstaendig in der Liste, nur weiterspielen geht
+   dann nicht mehr. */
+var STAENDE=20;
+function staendeAufraeumen(a){
+  var i,n=0;
+  for(i=a.length-1;i>=0;i--){
+    if(!a[i].stand)continue;
+    n++;
+    if(n>STAENDE)delete a[i].stand;
+  }
+}
+var warErsatz=false;
+function saveMatch(){
+  try{
+    var k="snooker_matches",
+        a=JSON.parse(window.localStorage.getItem(k)||"[]"),
+        r=matchRecord(),i,pos=-1;
+    for(i=0;i<a.length;i++)if(a[i].id&&a[i].id===r.id){pos=i;break;}
+    warErsatz=(pos>=0);
+    if(warErsatz)a[pos]=r; else a.push(r);
+    staendeAufraeumen(a);
+    window.localStorage.setItem(k,JSON.stringify(a));
+    return a.length;
+  }catch(e){return -1;}
+}
+
+/* Eine Datei zum Herunterladen anbieten. Gibt den Dateinamen zurück,
+   bei einem Fehler den leeren Text. */
+function dateiRunter(txt,name){
+  try{
+    var url,a=document.createElement("a");
+    if(window.Blob&&window.URL&&window.URL.createObjectURL)
+      url=window.URL.createObjectURL(new Blob([txt],{type:"application/json"}));
+    else
+      url="data:application/json;charset=utf-8,"+encodeURIComponent(txt);
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click();
+    a.parentNode.removeChild(a);
+    return name;
+  }catch(e){return "";}
+}
+function saveFile(){
+  var r=matchRecord();
+  return dateiRunter(JSON.stringify(r),
+    "snooker-"+r.spieler[0]+"-"+r.spieler[1]+"-"+
+    r.gespeichert.slice(0,10)+".json");
+}
+function alleMatches(){
+  if(!LSOK)return [];
+  try{
+    var a=JSON.parse(window.localStorage.getItem("snooker_matches")||"[]");
+    return (a&&a.length)?a:[];
+  }catch(e){return [];}
+}
+
+/* ---------- Server: alles laeuft an einer Stelle zusammen ----------
+   Supabase, eigenes Projekt "snooker", Frankfurt, kostenlos. Der Zaehler
+   meldet sich nicht an, er kommt mit dem oeffentlichen Schluessel. Der
+   steht hier im Klartext: wer die Datei hat, kommt an die Daten.
+
+   Der Abgleich geht in beide Richtungen. Erst alles Lokale hoch, dann
+   alles vom Server, was hier fehlt. Geloescht wird nie hart, sondern
+   ueber ein Kreuz in der Spalte "geloescht" - sonst waere ein geloeschtes
+   Match beim naechsten Abgleich wieder da.
+
+   Alles laeuft ueber XMLHttpRequest, damit auch der alte Chrome auf dem
+   Tablet mitkommt. Ohne Netz passiert nichts Schlimmes: der Abgleich
+   bricht mit einer Meldung ab, lokal bleibt alles, wie es war. */
+var SRV="https://wowzxntkaaahovldaozt.supabase.co/rest/v1/";
+var SRVKEY="sb_publishable_OY5VghSFG2QSRQ4_o_Y0mg_es9zDAS1";
+var TOTKEY="snooker_geloescht";
+var GERKEY="snooker_geraet";
+var PAKET=25;          /* so viele Zeilen pro Sendung */
+
+/* Kennung dieses Geraets. Nur dafuer da, den laufenden Stand vom eigenen
+   Geraet von dem eines anderen zu unterscheiden. */
+function geraetId(){
+  var g="";
+  if(!LSOK)return "ohne-speicher";
+  try{
+    g=window.localStorage.getItem(GERKEY)||"";
+    if(!g){
+      g="G"+Date.now()+"-"+Math.floor(Math.random()*1000);
+      window.localStorage.setItem(GERKEY,g);
+    }
+  }catch(e){g="ohne-speicher";}
+  return g;
+}
+
+/* ---------- Merkliste des Geloeschten ----------
+   Ohne sie kaeme jedes geloeschte Match beim naechsten Abgleich vom
+   Server zurueck. m = Matches, l = Meisterschaften, s = Spieler. */
+function totLesen(){
+  var leer={m:[],l:[],s:[]},t;
+  if(!LSOK)return leer;
+  try{
+    t=JSON.parse(window.localStorage.getItem(TOTKEY)||"null");
+    if(!t)return leer;
+    return {m:t.m||[],l:t.l||[],s:t.s||[]};
+  }catch(e){return leer;}
+}
+function totSchreiben(t){
+  if(!LSOK)return;
+  try{window.localStorage.setItem(TOTKEY,JSON.stringify(t));}catch(e){}
+}
+function totMerken(art,id){
+  if(!id)return;
+  var t=totLesen(),a=t[art],i;
+  if(!a)return;
+  for(i=0;i<a.length;i++)if(a[i]===id)return;
+  a.push(id);
+  totSchreiben(t);
+}
+function totHat(a,id){
+  var i;
+  for(i=0;i<a.length;i++)if(a[i]===id)return true;
+  return false;
+}
+
+/* ---------- Eine Anfrage an den Server ---------- */
+function srvRuf(art,pfad,koerper,prefer,fertig,fehler){
+  var x;
+  try{x=new XMLHttpRequest();}
+  catch(e){fehler("Der Browser kann nicht senden.");return;}
+  try{x.open(art,SRV+pfad,true);}
+  catch(e2){fehler("Die Serveradresse stimmt nicht.");return;}
+  x.setRequestHeader("apikey",SRVKEY);
+  x.setRequestHeader("Authorization","Bearer "+SRVKEY);
+  if(koerper)x.setRequestHeader("Content-Type","application/json");
+  if(prefer)x.setRequestHeader("Prefer",prefer);
+  x.onreadystatechange=function(){
+    if(x.readyState!==4)return;
+    if(x.status>=200&&x.status<300){
+      var r=null;
+      try{r=x.responseText?JSON.parse(x.responseText):null;}catch(e3){r=null;}
+      fertig(r);
+    }else if(!x.status){
+      fehler("Keine Verbindung zum Server. Ist das Netz an?");
+    }else{
+      fehler("Der Server antwortet mit "+x.status+".");
+    }
+  };
+  try{x.send(koerper?JSON.stringify(koerper):null);}
+  catch(e4){fehler("Das Senden ging nicht.");}
+}
+/* Anlegen oder ueberschreiben, in Paketen. */
+function srvHoch(tabelle,konflikt,zeilen,fertig,fehler){
+  var pos=0;
+  if(!zeilen.length){fertig(0);return;}
+  function weiter(){
+    if(pos>=zeilen.length){fertig(zeilen.length);return;}
+    var teil=zeilen.slice(pos,pos+PAKET);
+    pos+=teil.length;
+    srvRuf("POST",tabelle+"?on_conflict="+konflikt,teil,
+           "resolution=merge-duplicates,return=minimal",weiter,fehler);
+  }
+  weiter();
+}
+/* Liste fuer die Server-Abfrage: in.("a","b") */
+function inListe(a){
+  var i,t=[];
+  for(i=0;i<a.length;i++)t.push('"'+String(a[i]).replace(/"/g,'""')+'"');
+  return "in.("+encodeURIComponent(t.join(","))+")";
+}
+
+function matchesSchreiben(a){
+  if(!LSOK)return false;
+  try{window.localStorage.setItem("snooker_matches",JSON.stringify(a));return true;}
+  catch(e){return false;}
+}
+/* Aeltere Matches haben noch keine Kennung. Ohne die geht kein Abgleich,
+   also bekommen sie hier eine. */
+function matchesMitId(){
+  var a=alleMatches(),i,neu=false,t;
+  for(i=0;i<a.length;i++)if(!a[i].id){
+    t=new Date(a[i].gespeichert).getTime();
+    a[i].id="M"+(t||Date.now())+"-"+i;
+    neu=true;
+  }
+  if(neu)matchesSchreiben(a);
+  return a;
+}
+function matchNachDatum(a){
+  a.sort(function(x,y){
+    var p=String(x.gespeichert||""),q=String(y.gespeichert||"");
+    return p<q?-1:(p>q?1:0);
+  });
+  return a;
+}
+/* Zwei Fassungen derselben Meisterschaft zusammenlegen: Spieler und
+   Ergebnisse werden vereinigt, nichts geht verloren. */
+function ergSchluessel(e){
+  return e.mid||(String(e.datum)+"|"+e.a+"|"+e.b);
+}
+function ligaMischen(a,b){
+  var i,j,drin,k;
+  /* Aus einer aelteren Fassung oder einer beschaedigten Datei koennen
+     Felder fehlen. Ohne diese Zeilen stirbt der ganze Abgleich bzw. der
+     ganze Import daran. */
+  if(!a.spieler)a.spieler=[];
+  if(!a.ergebnisse)a.ergebnisse=[];
+  if(!b.spieler)b.spieler=[];
+  if(!b.ergebnisse)b.ergebnisse=[];
+  for(i=0;i<b.spieler.length;i++)
+    if(!ligaHat(a,b.spieler[i]))a.spieler.push(b.spieler[i]);
+  for(i=0;i<b.ergebnisse.length;i++){
+    k=ergSchluessel(b.ergebnisse[i]); drin=false;
+    for(j=0;j<a.ergebnisse.length;j++)
+      if(ergSchluessel(a.ergebnisse[j])===k){drin=true;break;}
+    if(!drin)a.ergebnisse.push(b.ergebnisse[i]);
+  }
+  return a;
+}
+
+/* ---------- Der Abgleich ---------- */
+var abgleichLaeuft=false;
+function abgleich(){
+  if(abgleichLaeuft)return;
+  if(!LSOK){
+    seiteOpen("Abgleich",
+      '<div class="askInfo warn">Dieser Browser speichert nichts im Gerät. '+
+      "Ein Abgleich hätte nichts, was er mitnehmen könnte.</div>",
+      [{t:"Zurück",f:homeAuf,zurueck:true}]);
+    return;
+  }
+  abgleichLaeuft=true;
+  var ger=geraetId(),
+      mLokal=matchesMitId(), lLokal=ligenLesen(), sLokal=spielerLesen(),
+      tot=totLesen(), lauf=laufendLesen(),
+      ber={hoch:0,runter:0,weg:0,ligenRunter:0,spielerRunter:0,serverLauf:null},
+      schritte=[],nr=0;
+
+  seiteOpen("Abgleich läuft",
+    '<div class="askInfo">Das Gerät redet gerade mit dem Server. '+
+    "Das dauert ein paar Sekunden.</div>",[]);
+
+  function fehler(txt){
+    abgleichLaeuft=false;
+    seiteOpen("Abgleich abgebrochen",
+      '<div class="askInfo warn">'+esc(txt)+"<br><br>Es ist nichts verloren "+
+      "gegangen. Im Gerät bleibt alles, wie es war.</div>",
+      [{t:"Nochmal versuchen",f:abgleich},
+       {t:"Zurück",f:homeAuf,zurueck:true}]);
+  }
+  function weiter(){
+    if(nr>=schritte.length){fertig();return;}
+    var f=schritte[nr++];
+    f(weiter,fehler);
+  }
+
+  /* 0. Zuerst fragen, was auf dem Server schon als geloescht angekreuzt
+        ist, und es in die eigene Merkliste uebernehmen. Ohne diesen
+        Schritt wuerde ein Geraet, das ein anderswo geloeschtes Match noch
+        liegen hat, es gleich wieder mit "nicht geloescht" hochladen - und
+        das Match waere samt Auswertung zurueck. */
+  schritte.push(function(w,f){
+    srvRuf("GET","matches?select=id&geloescht=is.true",null,null,function(r){
+      var i;
+      r=r||[];
+      for(i=0;i<r.length;i++)totMerken("m",r[i].id);
+      srvRuf("GET","ligen?select=id&geloescht=is.true",null,null,function(r2){
+        var j;
+        r2=r2||[];
+        for(j=0;j<r2.length;j++)totMerken("l",r2[j].id);
+        srvRuf("GET","spieler?select=name&geloescht=is.true",null,null,
+          function(r3){
+            var k;
+            r3=r3||[];
+            for(k=0;k<r3.length;k++)totMerken("s",r3[k].name);
+            tot=totLesen();
+            w();
+          },f);
+      },f);
+    },f);
+  });
+
+  /* 1. Matches hoch - ausser denen, die als geloescht gelten */
+  schritte.push(function(w,f){
+    var z=[],i,m;
+    for(i=0;i<mLokal.length;i++){
+      m=mLokal[i];
+      if(!m.id)continue;
+      if(totHat(tot.m,m.id))continue;
+      z.push({id:m.id,
+              gespeichert:m.gespeichert||null,
+              spieler1:(m.spieler&&m.spieler[0])||"",
+              spieler2:(m.spieler&&m.spieler[1])||"",
+              frames1:(m.frames&&m.frames[0])||0,
+              frames2:(m.frames&&m.frames[1])||0,
+              liga_id:m.liga?m.liga.id:null,
+              daten:m,geloescht:false});
+    }
+    srvHoch("matches","id",z,function(n){ber.hoch=n;w();},f);
+  });
+  /* 2. Meisterschaften hoch */
+  schritte.push(function(w,f){
+    var z=[],i;
+    for(i=0;i<lLokal.length;i++){
+      if(totHat(tot.l,lLokal[i].id))continue;
+      z.push({id:lLokal[i].id,name:lLokal[i].name||"",
+              daten:lLokal[i],geloescht:false});
+    }
+    srvHoch("ligen","id",z,function(){w();},f);
+  });
+  /* 3. Spieler hoch */
+  schritte.push(function(w,f){
+    var z=[],i;
+    for(i=0;i<sLokal.length;i++){
+      if(totHat(tot.s,sLokal[i]))continue;
+      z.push({name:sLokal[i],geloescht:false});
+    }
+    srvHoch("spieler","name",z,function(){w();},f);
+  });
+  /* 4. Geloeschtes ankreuzen */
+  schritte.push(function(w,f){
+    var z=[],i;
+    for(i=0;i<tot.m.length;i++)z.push({id:tot.m[i],geloescht:true});
+    srvHoch("matches","id",z,function(){w();},f);
+  });
+  schritte.push(function(w,f){
+    var z=[],i;
+    for(i=0;i<tot.l.length;i++)z.push({id:tot.l[i],geloescht:true});
+    srvHoch("ligen","id",z,function(){w();},f);
+  });
+  schritte.push(function(w,f){
+    var z=[],i;
+    for(i=0;i<tot.s.length;i++)z.push({name:tot.s[i],geloescht:true});
+    srvHoch("spieler","name",z,function(){w();},f);
+  });
+  /* 5. Laufenden Stand hoch, aber nur wenn es hier einen gibt */
+  schritte.push(function(w,f){
+    if(!lauf){w();return;}
+    srvHoch("laufend","id",[{id:"aktuell",daten:lauf,geraet:ger}],
+            function(){w();},f);
+  });
+  /* 6. Matches runter. Erst nur die Kennungen holen, dann gezielt die
+        Daten der fehlenden - das spart am Hotspot eine Menge. */
+  schritte.push(function(w,f){
+    srvRuf("GET","matches?select=id,geloescht",null,null,function(r){
+      var i,j,fehlt=[],hier={},neuListe=mLokal.slice(),tot2=totLesen();
+      for(i=0;i<mLokal.length;i++)if(mLokal[i].id)hier[mLokal[i].id]=1;
+      r=r||[];
+      for(i=0;i<r.length;i++){
+        if(r[i].geloescht){
+          if(hier[r[i].id]){
+            for(j=0;j<neuListe.length;j++)
+              if(neuListe[j].id===r[i].id){neuListe.splice(j,1);ber.weg++;break;}
+          }
+          if(!totHat(tot2.m,r[i].id))tot2.m.push(r[i].id);
+        }else if(!hier[r[i].id]&&!totHat(tot.m,r[i].id)){
+          fehlt.push(r[i].id);
+        }
+      }
+      totSchreiben(tot2);
+      mLokal=neuListe;
+      matchesSchreiben(mLokal);
+      if(!fehlt.length){w();return;}
+      var pos=0;
+      function holen(){
+        if(pos>=fehlt.length){
+          matchesSchreiben(matchNachDatum(mLokal));
+          w(); return;
+        }
+        var teil=fehlt.slice(pos,pos+PAKET);
+        pos+=teil.length;
+        srvRuf("GET","matches?select=daten&id="+inListe(teil),null,null,
+          function(rr){
+            var k;
+            rr=rr||[];
+            for(k=0;k<rr.length;k++)if(rr[k].daten){
+              mLokal.push(rr[k].daten); ber.runter++;
+            }
+            holen();
+          },f);
+      }
+      holen();
+    },f);
+  });
+  /* 7. Meisterschaften runter */
+  schritte.push(function(w,f){
+    srvRuf("GET","ligen?select=id,daten,geloescht",null,null,function(r){
+      var i,j,gef,neu=lLokal.slice(),tot2=totLesen();
+      r=r||[];
+      for(i=0;i<r.length;i++){
+        gef=-1;
+        for(j=0;j<neu.length;j++)if(neu[j].id===r[i].id){gef=j;break;}
+        if(r[i].geloescht){
+          if(gef>=0){neu.splice(gef,1);ber.weg++;}
+          if(!totHat(tot2.l,r[i].id))tot2.l.push(r[i].id);
+        }else if(gef>=0){
+          if(r[i].daten)neu[gef]=ligaMischen(neu[gef],r[i].daten);
+        }else if(r[i].daten&&!totHat(tot.l,r[i].id)){
+          neu.push(r[i].daten); ber.ligenRunter++;
+        }
+      }
+      totSchreiben(tot2);
+      lLokal=neu; ligenSchreiben(neu);
+      w();
+    },f);
+  });
+  /* 8. Spieler runter */
+  schritte.push(function(w,f){
+    srvRuf("GET","spieler?select=name,geloescht",null,null,function(r){
+      var i,j,neu=sLokal.slice(),drin,tot2=totLesen();
+      r=r||[];
+      for(i=0;i<r.length;i++){
+        drin=-1;
+        for(j=0;j<neu.length;j++)if(neu[j]===r[i].name){drin=j;break;}
+        if(r[i].geloescht){
+          if(drin>=0)neu.splice(drin,1);
+          if(!totHat(tot2.s,r[i].name))tot2.s.push(r[i].name);
+        }else if(drin<0&&!totHat(tot.s,r[i].name)){
+          neu.push(r[i].name); ber.spielerRunter++;
+        }
+      }
+      totSchreiben(tot2);
+      sLokal=neu; spielerSchreiben(spielerSort(neu));
+      w();
+    },f);
+  });
+  /* 9. Liegt auf dem Server ein neuerer laufender Stand? Nur nachfragen,
+        nie einfach ueberschreiben. */
+  schritte.push(function(w,f){
+    srvRuf("GET","laufend?id=eq.aktuell&select=daten,geraet",null,null,
+      function(r){
+        var s=(r&&r.length)?r[0]:null;
+        if(s&&s.daten&&s.daten.S&&s.geraet!==ger&&
+           (!lauf||(s.daten.zeit||0)>(lauf.zeit||0)))
+          ber.serverLauf=s.daten;
+        w();
+      },f);
+  });
+
+  function fertig(){
+    abgleichLaeuft=false;
+    var h='<div class="askInfo">'+
+      "Hochgeladen: "+ber.hoch+(ber.hoch===1?" Match":" Matches")+".<br>"+
+      "Neu geholt: "+ber.runter+(ber.runter===1?" Match":" Matches")+
+      (ber.ligenRunter?", "+ber.ligenRunter+" "+
+        (ber.ligenRunter===1?"Meisterschaft":"Meisterschaften"):"")+
+      (ber.spielerRunter?", "+ber.spielerRunter+" Spieler":"")+".<br>"+
+      (ber.weg?"Anderswo gelöscht, hier weggenommen: "+ber.weg+".":"")+
+      "</div>";
+    var kn=[];
+    if(ber.serverLauf){
+      h+='<div class="askInfo">Auf dem Server liegt ein neuerer laufender '+
+         "Stand: <b>"+esc(ber.serverLauf.namen[0])+" "+
+         ber.serverLauf.S.fr[0]+"–"+ber.serverLauf.S.fr[1]+" "+
+         esc(ber.serverLauf.namen[1])+"</b>, Punkte im Frame "+
+         ber.serverLauf.S.sc[0]+"–"+ber.serverLauf.S.sc[1]+".</div>";
+      kn.push({t:"Diesen Stand hier weiterspielen",f:function(){
+        seiteZu(); weiterspielen(ber.serverLauf); draw();
+      }});
+    }
+    kn.push({t:"Zurück",f:homeAuf,zurueck:true});
+    seiteOpen("Abgleich fertig",h,kn);
+  }
+
+  weiter();
+}
+el("hSync").addEventListener("click",abgleich,false);
+el("mSync").addEventListener("click",function(){
+  el("ovMenu").className="ov"; abgleich();
+},false);
+
+/* ---------- Menü ---------- */
+/* Welche Groessenstufe gilt gerade? Nur zum Nachsehen - beim Nachstellen
+   der Masse muss man sonst raten. */
+function stufeJetzt(){
+  var h=(window.innerHeight||0);
+  if(h<=480)return "3 (quer)";
+  if(h<=620)return "2 (klein)";
+  if(h<=720)return "1 (Handy)";
+  return "0 (Tablet, volle Größe)";
+}
+el("menu").addEventListener("click",function(){
+  el("menuInfo").innerHTML=aktuelleLiga
+    ? '<div class="askInfo">Z\u00e4hlt f\u00fcr: '+esc(aktuelleLiga.name)+"</div>"
+    : "";
+  el("menuInfo").innerHTML+=
+    '<div class="askInfo">Bildschirm '+(window.innerWidth||0)+" × "+
+    (window.innerHeight||0)+" · Stufe "+stufeJetzt()+"</div>";
+  el("ovMenu").className="ov on";
+},false);
+el("mBack").addEventListener("click",function(){el("ovMenu").className="ov";},false);
+
+el("mFrEnd").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  if(S.phase==="done"){
+    askOpen("Frame beenden",
+      '<div class="askInfo">Der Frame ist schon zu Ende.</div>',
+      "Alles klar",null);
+    return;
+  }
+  askOpen("Wer gewinnt den Frame?",
+    '<div class="askInfo">Stand: '+S.sc[0]+"–"+S.sc[1]+"</div>",
+    NAME[0],function(){snap();awardFrame(0," von Hand");},
+    NAME[1],function(){snap();awardFrame(1," von Hand");});
+},false);
+
+el("mRerack").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  askOpen("Re-rack",
+    '<div class="askInfo">Der Frame wird neu begonnen. Der Punktestand '+
+    S.sc[0]+"–"+S.sc[1]+" wird gelöscht. "+NAME[S.first]+
+    " stößt wieder an. Frames bleiben stehen.</div>",
+    "Ja, neu beginnen",rerack);
+},false);
+
+function fertigMelden(txt){
+  askOpen("Gespeichert",'<div class="askInfo">'+txt+"</div>",
+    "Zur Startseite",function(){aktuelleLiga=null;homeAuf();});
+}
+function endeSpeicher(){
+  var n=saveMatch(),extra="";
+  if(n<0){endeDatei();return;}
+  /* Gehoert das Match zu einer Meisterschaft, wandert das Ergebnis
+     in deren Tabelle. */
+  if(aktuelleLiga){
+    extra=ligaErgebnis(aktuelleLiga.id,NAME[0],NAME[1],S.fr,matchId)
+      ? "<br>Ergebnis "+S.fr[0]+"\u2013"+S.fr[1]+" steht in der Tabelle von "+
+        esc(aktuelleLiga.name)+"."
+      : "<br>Die Meisterschaft konnte nicht aktualisiert werden.";
+  }
+  sichern=false; laufendWeg();
+  fertigMelden((warErsatz
+    ? "Das Match wurde aktualisiert. Im Tablet "+
+      (n===1?"liegt 1 Match.":"liegen "+n+" Matches.")
+    : "Match Nummer "+n+" liegt jetzt im Speicher des Tablets.")+extra);
+}
+function endeDatei(){
+  var f=saveFile();
+  if(!f){
+    askOpen("Nicht gespeichert",
+      '<div class="askInfo warn">Es hat nicht geklappt. Das Match ist aber '+
+      "noch da — nichts ist verloren. Bitte melden.</div>",
+      "Zurück zum Spiel",null);
+    return;
+  }
+  sichern=false; laufendWeg();
+  fertigMelden("Datei "+f+" wurde heruntergeladen.");
+}
+
+el("mEnd").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  var info=LSOK
+    ? '<div class="askInfo">Wird im Speicher des Tablets abgelegt. '+
+      "Alternativ als Datei.</div>"
+    : '<div class="askInfo warn">Dieser Browser speichert nicht im Gerät. '+
+      "Es geht nur als Datei.</div>";
+  if(LSOK)
+    askOpen("Spielende",sumHtml()+info,
+      "Speichern und beenden",endeSpeicher,
+      "Als Datei sichern",endeDatei);
+  else
+    askOpen("Spielende",sumHtml()+info,"Als Datei sichern",endeDatei);
+},false);
+/* Ist überhaupt schon etwas passiert, das verloren gehen könnte? */
+function etwasPassiert(x){
+  var z=x||S;
+  return z.fr[0]+z.fr[1]+z.sc[0]+z.sc[1]+z.pots[0]+z.pots[1]+
+         z.fouls[0]+z.fouls[1]>0;
+}
+/* Zweiter Schritt: Match sichern oder wegwerfen. */
+function neuesMatchSchritt2(){
+  var info=LSOK
+    ? '<div class="askInfo">Das alte Match kann gespeichert werden.</div>'
+    : '<div class="askInfo warn">Dieser Browser speichert nicht im Gerät. '+
+      "Sichern geht nur als Datei.</div>";
+  askOpen("Altes Match",sumHtml()+info,
+    LSOK?"Speichern, dann neu":"Als Datei sichern, dann neu",
+    LSOK?endeSpeicher:endeDatei,
+    "Ohne sichern neu",startDialog);
+}
+el("mNew").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  if(!etwasPassiert()){startDialog();return;}
+  /* Läuft noch ein Frame mit Punkten? Dann erst klären, wer ihn gewinnt. */
+  var offen=(S.phase!=="done")&&(S.sc[0]+S.sc[1]>0);
+  if(offen){
+    askOpen("Laufender Frame",
+      '<div class="askInfo">Stand '+S.sc[0]+"–"+S.sc[1]+
+      ". Wer gewinnt diesen Frame?</div>",
+      NAME[0],function(){snap();awardFrame(0," von Hand");neuesMatchSchritt2();},
+      NAME[1],function(){snap();awardFrame(1," von Hand");neuesMatchSchritt2();},
+      "Nicht werten",function(){snap();neuesMatchSchritt2();});
+    return;
+  }
+  neuesMatchSchritt2();
+},false);
+/* ---------- Pause ---------- */
+el("mPause").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  pausiert=true; uhr(); autoSave();
+  el("pInfo").className=LSOK?"askInfo":"askInfo warn";
+  el("pInfo").innerHTML=LSOK
+    ? "Die Zeitmessung steht still.<br>Der Spielstand ist gesichert – "+
+      "du kannst Chrome schließen und das Tablet weglegen."
+    : "Die Zeitmessung steht still.<br>Achtung: dieser Browser speichert "+
+      "nicht im Gerät. Lass die Seite offen, sonst ist das Match weg.";
+  el("ovPause").className="ov on";
+},false);
+el("pWeiter").addEventListener("click",function(){
+  pausiert=false; taktAus();
+  el("ovPause").className="ov"; draw();
+},false);
+
+el("mExport").addEventListener("click",function(){exportAlles(null);},false);
+
+el("mNames").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  el("in0").value=NAME[0]; el("in1").value=NAME[1];
+  el("ovNames").className="ov on";
+},false);
+el("nCancel").addEventListener("click",function(){el("ovNames").className="ov";},false);
+el("nOk").addEventListener("click",function(){
+  var a=el("in0").value.replace(/^\s+|\s+$/g,""),
+      b=el("in1").value.replace(/^\s+|\s+$/g,"");
+  NAME[0]=a||"Spieler 1"; NAME[1]=b||"Spieler 2";
+  spielerMerken(NAME[0]); spielerMerken(NAME[1]);
+  commFrisch();                /* die Namen stehen im Protokoll */
+  el("ovNames").className="ov"; draw();
+},false);
+
+/* ---------- Korrektur ---------- */
+var fix={s:[0,0],f:[0,0],reds:15,cur:0,phase:"red"};
+function drawFix(){
+  el("fixS0").textContent=fix.s[0];
+  el("fixS1").textContent=fix.s[1];
+  el("fixFr0").textContent=fix.f[0];
+  el("fixFr1").textContent=fix.f[1];
+  el("fixReds").textContent=fix.reds;
+  el("fixN0").textContent=NAME[0]; el("fixN1").textContent=NAME[1];
+  el("fixF0").textContent=NAME[0]; el("fixF1").textContent=NAME[1];
+}
+el("mFix").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  fix={s:[S.sc[0],S.sc[1]],f:[S.fr[0],S.fr[1]],reds:S.reds,cur:S.cur,
+       phase:(S.phase==="done"?"red":S.phase)};
+  pick("fixCur",fix.cur);
+  pick("fixPhase",fix.phase==="red"?0:(fix.phase==="colour"?1:2));
+  drawFix();
+  el("ovFix").className="ov on";
+},false);
+
+el("ovFix").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b)return;
+  var f=b.getAttribute("data-f"); if(!f)return;
+  var d=parseInt(b.getAttribute("data-d"),10);
+  if(f==="s0"){fix.s[0]+=d;if(fix.s[0]<0)fix.s[0]=0;}
+  else if(f==="s1"){fix.s[1]+=d;if(fix.s[1]<0)fix.s[1]=0;}
+  else if(f==="f0"){fix.f[0]+=d;if(fix.f[0]<0)fix.f[0]=0;}
+  else if(f==="f1"){fix.f[1]+=d;if(fix.f[1]<0)fix.f[1]=0;}
+  else if(f==="reds"){fix.reds+=d;if(fix.reds<0)fix.reds=0;if(fix.reds>redsTotal)fix.reds=redsTotal;}
+  drawFix();
+},false);
+
+group("fixCur",function(b){fix.cur=parseInt(b.getAttribute("data-n"),10);});
+group("fixPhase",function(b){fix.phase=b.getAttribute("data-p");});
+
+el("xCancel").addEventListener("click",function(){el("ovFix").className="ov";},false);
+el("xOk").addEventListener("click",function(){
+  snap(); taktAus();
+  S.sc[0]=fix.s[0]; S.sc[1]=fix.s[1];
+  S.fr[0]=fix.f[0]; S.fr[1]=fix.f[1];
+  S.reds=fix.reds; S.cur=fix.cur; S.phase=fix.phase; S.pending=null;
+  S.lastRed=false; S.respot=false;
+  if(S.phase==="sequence"&&S.seq<2)S.seq=2;
+  S.brk=0;
+  say("Korrektur von Hand: "+S.sc[0]+"–"+S.sc[1]+", "+S.reds+" Rote.",false);
+  el("ovFix").className="ov";
+  draw();
+},false);
+
+/* ---------- Kleine Helfer ---------- */
+/* Namen kommen aus Eingabefeldern und landen in innerHTML. */
+function esc(s){
+  return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                             .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function datumKurz(x){
+  var d=new Date(x);
+  if(isNaN(d.getTime()))return "?";
+  return ("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2)+"."+
+         d.getFullYear();
+}
+function zeitKurz(x){
+  var d=new Date(x);
+  if(isNaN(d.getTime()))return "";
+  return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+}
+
+/* ---------- Eine Seite mit Liste und Knoepfen ----------
+   Startseite, Meisterschaften und Matchliste teilen sich diese eine
+   Ansicht. Der Inhalt wird jedes Mal neu gezeichnet. */
+var seiteFns={}, seiteZeileFn=null;
+function seiteOpen(titel,inhalt,knoepfe,zeileFn){
+  var h="",i;
+  el("ovHome").className="ov";
+  el("ovAsk").className="ov";
+  el("ovLigaNeu").className="ov";
+  el("seiteT").textContent=titel;
+  el("seiteBody").innerHTML=inhalt;
+  seiteFns={}; seiteZeileFn=zeileFn||null;
+  for(i=0;i<knoepfe.length;i++){
+    seiteFns["k"+i]=knoepfe[i].f;
+    h+='<button class="'+(knoepfe[i].weg?"loesch":
+                          (knoepfe[i].zurueck?"cancel":"ok"))+
+       '" data-k="k'+i+'">'+esc(knoepfe[i].t)+"</button>";
+  }
+  el("seiteBtns").innerHTML=h;
+  el("ovSeite").className="ov on";
+  el("seiteBody").scrollTop=0;
+}
+function seiteZu(){el("ovSeite").className="ov";}
+el("seiteBtns").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b)return;
+  var k=b.getAttribute("data-k");
+  if(k&&seiteFns[k])seiteFns[k]();
+},false);
+el("seiteBody").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b)return;
+  var z=b.getAttribute("data-z");
+  if(z!==null&&seiteZeileFn)seiteZeileFn(z);
+},false);
+
+/* ---------- Meisterschaften ----------
+   Eine Meisterschaft ist eine Liste von Spielern plus die Ergebnisse
+   der Matches, die ihr zugeordnet wurden. Daraus rechnet die App die
+   Tabelle: 2 Punkte fuer einen Sieg, 1 bei gleichem Framestand.
+   Es gibt keinen festen Spielplan - gespielt wird, wann es passt.
+   Liegt unter "snooker_ligen" im localStorage. */
+var LIGAKEY="snooker_ligen";
+var aktuelleLiga=null;    /* {id,name}: wohin zaehlt das laufende Match */
+
+function ligenLesen(){
+  if(!LSOK)return [];
+  try{
+    var a=JSON.parse(window.localStorage.getItem(LIGAKEY)||"[]");
+    return (a&&a.length)?a:[];
+  }catch(e){return [];}
+}
+function ligenSchreiben(a){
+  if(!LSOK)return false;
+  try{window.localStorage.setItem(LIGAKEY,JSON.stringify(a));return true;}
+  catch(e){return false;}
+}
+function ligaFinden(id){
+  var a=ligenLesen(),i;
+  for(i=0;i<a.length;i++)if(a[i].id===id)return a[i];
+  return null;
+}
+function ligaSpeichern(liga){
+  var a=ligenLesen(),i;
+  for(i=0;i<a.length;i++)if(a[i].id===liga.id){a[i]=liga;return ligenSchreiben(a);}
+  a.push(liga);
+  return ligenSchreiben(a);
+}
+function ligaHat(liga,n){
+  var i;
+  for(i=0;i<liga.spieler.length;i++)if(liga.spieler[i]===n)return true;
+  return false;
+}
+/* Ergebnis eines Matches in die Meisterschaft eintragen. */
+function ligaErgebnis(id,a,b,fr,mid){
+  var liga=ligaFinden(id),i,ersetzt=false,
+      e={datum:new Date().toISOString(),a:a,b:b,fr:[fr[0],fr[1]],
+         mid:mid||null};
+  if(!liga)return false;
+  /* Wurde dasselbe Match schon einmal gewertet, wird der alte Eintrag
+     ueberschrieben - sonst zaehlte es doppelt. */
+  if(mid)for(i=0;i<liga.ergebnisse.length;i++)
+    if(liga.ergebnisse[i].mid===mid){liga.ergebnisse[i]=e;ersetzt=true;break;}
+  if(!ersetzt)liga.ergebnisse.push(e);
+  if(!ligaHat(liga,a))liga.spieler.push(a);
+  if(!ligaHat(liga,b))liga.spieler.push(b);
+  return ligaSpeichern(liga);
+}
+
+/* Tabelle: Punkte, dann Framedifferenz, dann gewonnene Frames. */
+function tabelle(liga){
+  var t={},l=[],i,k,m,x,y;
+  for(i=0;i<liga.spieler.length;i++)
+    t[liga.spieler[i]]={n:liga.spieler[i],sp:0,s:0,u:0,v:0,ff:0,fg:0,pkt:0};
+  for(i=0;i<liga.ergebnisse.length;i++){
+    m=liga.ergebnisse[i]; x=t[m.a]; y=t[m.b];
+    if(!x||!y)continue;
+    x.sp++; y.sp++;
+    x.ff+=m.fr[0]; x.fg+=m.fr[1];
+    y.ff+=m.fr[1]; y.fg+=m.fr[0];
+    if(m.fr[0]>m.fr[1]){x.s++;y.v++;x.pkt+=2;}
+    else if(m.fr[1]>m.fr[0]){y.s++;x.v++;y.pkt+=2;}
+    else{x.u++;y.u++;x.pkt++;y.pkt++;}
+  }
+  for(k in t)if(t.hasOwnProperty(k))l.push(t[k]);
+  l.sort(function(p,q){
+    return (q.pkt-p.pkt)||((q.ff-q.fg)-(p.ff-p.fg))||(q.ff-p.ff)||
+           (p.n<q.n?-1:(p.n>q.n?1:0));
+  });
+  return l;
+}
+function tabelleHtml(liga){
+  var l=tabelle(liga),i,r,
+      h='<div class="lt"><div class="lz kopf"><span class="p">#</span>'+
+        '<span class="lsp">Spieler</span><span>Sp</span><span>S</span>'+
+        '<span>U</span><span>N</span><span class="lfr">Frames</span>'+
+        '<span class="pk">Pkt</span></div>';
+  for(i=0;i<l.length;i++){
+    r=l[i];
+    h+='<div class="lz"><span class="p">'+(i+1)+'</span><span class="lsp">'+
+       esc(r.n)+"</span><span>"+r.sp+"</span><span>"+r.s+"</span><span>"+
+       r.u+"</span><span>"+r.v+'</span><span class="lfr">'+r.ff+":"+r.fg+
+       '</span><span class="pk">'+r.pkt+"</span></div>";
+  }
+  return h+"</div>";
+}
+
+/* Liste aller Meisterschaften */
+function ligenSeite(){
+  if(!LSOK){
+    seiteOpen("Meisterschaft",
+      '<div class="askInfo warn">Dieser Browser speichert nicht im Ger&auml;t. '+
+      "Eine Meisterschaft braucht den Speicher, sonst w&auml;re die Tabelle "+
+      "nach dem Schlie&szlig;en weg.</div>",
+      [{t:"Zurück",f:homeAuf,zurueck:true}]);
+    return;
+  }
+  var a=ligenLesen(),h,i;
+  if(!a.length){
+    h='<div class="leer">Noch keine Meisterschaft angelegt.<br><br>'+
+      "Eine Meisterschaft ist eine Runde, in der mehrere Leute "+
+      "gegeneinander spielen. Du legst die Mitspieler fest, spielst "+
+      "wann es passt, und die App f&uuml;hrt die Tabelle.</div>";
+  }else{
+    h='<div class="liste">';
+    for(i=0;i<a.length;i++)
+      h+='<button class="zeile" data-z="'+i+'"><b>'+esc(a[i].name)+
+         "</b><em>"+a[i].spieler.length+" Spieler · "+
+         a[i].ergebnisse.length+" Matches</em></button>";
+    h+="</div>";
+  }
+  seiteOpen("Meisterschaft",h,
+    [{t:"Neue Meisterschaft",f:ligaNeuAuf},
+     {t:"Zurück",f:homeAuf,zurueck:true}],
+    function(z){
+      var liga=a[parseInt(z,10)];
+      if(liga)ligaAuf(liga.id);
+    });
+}
+
+/* Eine Meisterschaft: Tabelle und Ergebnisse */
+function ligaAuf(id){
+  var liga=ligaFinden(id);
+  if(!liga){ligenSeite();return;}
+  var h=tabelleHtml(liga),n=liga.ergebnisse.length,i,e;
+  h+="<h3>LETZTE ERGEBNISSE</h3>";
+  if(!n){
+    h+='<div class="leer">Noch kein Match gespielt.</div>';
+  }else{
+    h+='<div class="liste">';
+    for(i=n-1;i>=0&&i>n-13;i--){
+      e=liga.ergebnisse[i];
+      h+='<div class="zeile tot"><b>'+esc(e.a)+" "+e.fr[0]+"–"+e.fr[1]+
+         " "+esc(e.b)+"</b><em>"+datumKurz(e.datum)+"</em></div>";
+    }
+    h+="</div>";
+    if(n>12)h+='<div class="leer">Die 12 neuesten von '+n+".</div>";
+  }
+  seiteOpen(liga.name,h,
+    [{t:"Match starten",f:function(){ligaWahlAuf(liga.id);}},
+     {t:"Spieler hinzufügen",f:function(){ligaSpielerAuf(liga.id);}},
+     {t:"Zurück",f:ligenSeite,zurueck:true},
+     {t:"Meisterschaft löschen",f:function(){ligaLoeschenFragen(liga.id);},
+      weg:true}]);
+}
+
+/* Spieler zu einer bestehenden Meisterschaft nachtragen */
+function ligaSpielerAuf(id){
+  var liga=ligaFinden(id);
+  if(!liga)return;
+  seiteZu();
+  askOpen("Spieler hinzufügen",
+    '<div class="askInfo">Zu &bdquo;'+esc(liga.name)+'&ldquo;</div>'+
+    '<input id="lsName" type="text" autocomplete="off">',
+    "Hinzufügen",function(){
+      var n=(el("lsName").value||"").replace(/^\s+|\s+$/g,"");
+      if(n&&!ligaHat(liga,n)){liga.spieler.push(n);ligaSpeichern(liga);}
+      spielerMerken(n);
+      ligaAuf(id);
+    },
+    "Zurück",function(){ligaAuf(id);});
+  askOhneAbbruch();
+}
+
+/* Wer gegen wen - zwei Spieler antippen */
+var wahlLiga=null, wahlA=null;
+function ligaWahlAuf(id){wahlLiga=id; wahlA=null; ligaWahlZeichnen();}
+function ligaWahlZeichnen(){
+  var liga=ligaFinden(wahlLiga),h,i,sp;
+  if(!liga){ligenSeite();return;}
+  if(liga.spieler.length<2){
+    seiteOpen(liga.name,
+      '<div class="askInfo warn">Es sind erst '+liga.spieler.length+
+      " Spieler eingetragen. Für ein Match braucht es zwei.</div>",
+      [{t:"Spieler hinzufügen",f:function(){ligaSpielerAuf(liga.id);}},
+       {t:"Zurück",f:function(){ligaAuf(liga.id);},zurueck:true}]);
+    return;
+  }
+  h='<div class="askInfo">'+(wahlA
+      ? esc(wahlA)+" gegen wen?"
+      : "Wer spielt? Erst den einen antippen, dann den anderen.")+"</div>";
+  h+='<div class="chips">';
+  for(i=0;i<liga.spieler.length;i++){
+    sp=liga.spieler[i];
+    h+='<button data-z="'+i+'"'+(sp===wahlA?' class="on"':"")+">"+
+       esc(sp)+"</button>";
+  }
+  h+="</div>";
+  seiteOpen("Match in "+liga.name,h,
+    [{t:"Zurück",f:function(){ligaAuf(liga.id);},zurueck:true}],
+    function(z){
+      var n=liga.spieler[parseInt(z,10)];
+      if(!n)return;
+      if(!wahlA){wahlA=n;ligaWahlZeichnen();return;}
+      if(n===wahlA){wahlA=null;ligaWahlZeichnen();return;}
+      seiteZu();
+      aktuelleLiga={id:liga.id,name:liga.name};
+      startDialogMit(wahlA,n);
+    });
+}
+
+/* Neue Meisterschaft anlegen */
+var neuSpieler=[];
+function ligaNeuAuf(){
+  seiteZu();
+  neuSpieler=[];
+  el("lnName").value="";
+  el("lnSpieler").value="";
+  ligaNeuListe();
+  el("ovLigaNeu").className="ov on";
+}
+function ligaNeuListe(){
+  var h="",i;
+  for(i=0;i<neuSpieler.length;i++)
+    h+='<button data-i="'+i+'">'+esc(neuSpieler[i])+" ×</button>";
+  el("lnListe").innerHTML=h||'<div class="leer">Noch niemand eingetragen.</div>';
+}
+el("lnAdd").addEventListener("click",function(){
+  var n=(el("lnSpieler").value||"").replace(/^\s+|\s+$/g,""),i;
+  if(!n)return;
+  for(i=0;i<neuSpieler.length;i++)if(neuSpieler[i]===n){el("lnSpieler").value="";return;}
+  neuSpieler.push(n);
+  el("lnSpieler").value="";
+  ligaNeuListe();
+},false);
+el("lnListe").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b)return;
+  var i=parseInt(b.getAttribute("data-i"),10);
+  if(i>=0){neuSpieler.splice(i,1);ligaNeuListe();}
+},false);
+el("lnBack").addEventListener("click",function(){
+  el("ovLigaNeu").className="ov"; ligenSeite();
+},false);
+el("lnOk").addEventListener("click",function(){
+  var name=(el("lnName").value||"").replace(/^\s+|\s+$/g,"");
+  if(!name)name="Meisterschaft";
+  var liga={id:"L"+Date.now(),name:name,angelegt:new Date().toISOString(),
+            spieler:neuSpieler.slice(),ergebnisse:[]},i;
+  for(i=0;i<neuSpieler.length;i++)spielerMerken(neuSpieler[i]);
+  if(!ligaSpeichern(liga)){
+    el("ovLigaNeu").className="ov";
+    seiteOpen("Nicht gespeichert",
+      '<div class="askInfo warn">Der Speicher des Browsers wollte nicht.</div>',
+      [{t:"Zurück",f:ligenSeite,zurueck:true}]);
+    return;
+  }
+  el("ovLigaNeu").className="ov";
+  ligaAuf(liga.id);
+},false);
+
+/* ---------- Gespeicherte Matches ---------- */
+function listeSeite(){
+  var a=alleMatches(),h,i,m;
+  if(!a.length){
+    seiteOpen("Gespeicherte Matches",
+      '<div class="leer">Noch kein Match gespeichert.</div>',
+      [{t:"Zurück",f:homeAuf,zurueck:true}]);
+    return;
+  }
+  h='<div class="liste">';
+  for(i=a.length-1;i>=0&&i>a.length-31;i--){
+    m=a[i];
+    h+='<button class="zeile" data-z="'+i+'"><b>'+esc(m.spieler[0])+" "+
+       m.frames[0]+"–"+m.frames[1]+" "+esc(m.spieler[1])+"</b><em>"+
+       (m.stand?"↻ ":"")+datumKurz(m.gespeichert)+"</em></button>";
+  }
+  h+="</div>";
+  h+='<div class="leer">'+(a.length>30?"Die 30 neuesten von "+a.length+". ":"")+
+     "Antippen für die Einzelheiten, dort auch zum Löschen. "+
+     "↻ heißt: lässt sich weiterspielen.</div>";
+  seiteOpen("Gespeicherte Matches",h,
+    [{t:"Alles exportieren",f:function(){exportAlles(homeAuf);}},
+     {t:"Zurück",f:homeAuf,zurueck:true},
+     {t:"Alle "+a.length+" löschen",f:alleLoeschenFragen,weg:true}],
+    function(z){matchDetail(parseInt(z,10));});
+}
+
+/* ---------- Loeschen ----------
+   Ein Ergebnis aus der Tabelle einer Meisterschaft nehmen. */
+function ligaErgebnisWeg(id,mid){
+  var liga=ligaFinden(id),i;
+  if(!liga||!mid)return false;
+  for(i=liga.ergebnisse.length-1;i>=0;i--)
+    if(liga.ergebnisse[i].mid===mid)liga.ergebnisse.splice(i,1);
+  return ligaSpeichern(liga);
+}
+
+/* Ein gespeichertes Match wegwerfen. Zaehlte es fuer eine Meisterschaft,
+   verschwindet auch das Ergebnis aus deren Tabelle. Ist es zufaellig das
+   Match, das gerade mitgeschrieben wird, wird auch das aufgeraeumt. */
+function matchLoeschen(i){
+  if(!LSOK)return false;
+  try{
+    var k="snooker_matches",
+        a=JSON.parse(window.localStorage.getItem(k)||"[]"),
+        weg=a[i],lauf;
+    if(!weg)return false;
+    a.splice(i,1);
+    window.localStorage.setItem(k,JSON.stringify(a));
+    if(weg.id)totMerken("m",weg.id);
+    if(weg.liga&&weg.id)ligaErgebnisWeg(weg.liga.id,weg.id);
+    lauf=laufendLesen();
+    if(lauf&&weg.id&&lauf.mid===weg.id){laufendWeg();sichern=false;}
+    return true;
+  }catch(e){return false;}
+}
+
+/* Alle gespeicherten Matches wegwerfen, samt ihrer Ergebnisse in den
+   Tabellen. Das laufende Match bleibt unberuehrt. */
+function alleMatchesLoeschen(){
+  var a=alleMatches(),mids={},lg,neu,i,j;
+  for(i=0;i<a.length;i++)if(a[i].id){mids[a[i].id]=true;totMerken("m",a[i].id);}
+  lg=ligenLesen();
+  for(i=0;i<lg.length;i++){
+    neu=[];
+    for(j=0;j<lg[i].ergebnisse.length;j++)
+      if(!(lg[i].ergebnisse[j].mid&&mids[lg[i].ergebnisse[j].mid]))
+        neu.push(lg[i].ergebnisse[j]);
+    lg[i].ergebnisse=neu;
+  }
+  ligenSchreiben(lg);
+  try{window.localStorage.removeItem("snooker_matches");}catch(e){}
+  return true;
+}
+
+/* Eine ganze Meisterschaft wegwerfen. Die Matches bleiben in der Liste,
+   nur die Tabelle ist weg. */
+function ligaLoeschen(id){
+  var a=ligenLesen(),b=[],i;
+  totMerken("l",id);
+  for(i=0;i<a.length;i++)if(a[i].id!==id)b.push(a[i]);
+  if(aktuelleLiga&&aktuelleLiga.id===id)aktuelleLiga=null;
+  return ligenSchreiben(b);
+}
+
+function matchLoeschenFragen(i){
+  var a=alleMatches(),m=a[i];
+  if(!m){listeSeite();return;}
+  seiteZu();
+  askOpen("Match l\u00f6schen",
+    '<div class="askInfo warn"><b>'+esc(m.spieler[0])+" "+m.frames[0]+
+    "\u2013"+m.frames[1]+" "+esc(m.spieler[1])+"</b><br>"+
+    datumKurz(m.gespeichert)+" "+zeitKurz(m.gespeichert)+
+    (m.liga?"<br>Das Ergebnis verschwindet auch aus der Tabelle von "+
+            esc(m.liga.name)+".":"")+
+    "<br>Das l\u00e4sst sich nicht r\u00fcckg\u00e4ngig machen.</div>",
+    "Endg\u00fcltig l\u00f6schen",function(){matchLoeschen(i);listeSeite();},
+    "Doch behalten",function(){matchDetail(i);});
+  askOhneAbbruch();
+}
+function alleLoeschenFragen(){
+  var a=alleMatches();
+  seiteZu();
+  askOpen("Alle Matches l\u00f6schen",
+    '<div class="askInfo warn">Alle '+a.length+" gespeicherten Matches "+
+    "werden gel\u00f6scht, auch ihre Ergebnisse in den Tabellen der "+
+    "Meisterschaften.<br>Das laufende Match bleibt."+
+    "<br>Das l\u00e4sst sich nicht r\u00fcckg\u00e4ngig machen.</div>",
+    "Alle endg\u00fcltig l\u00f6schen",
+    function(){alleMatchesLoeschen();listeSeite();},
+    "Doch behalten",listeSeite);
+  askOhneAbbruch();
+}
+function ligaLoeschenFragen(id){
+  var liga=ligaFinden(id);
+  if(!liga){ligenSeite();return;}
+  seiteZu();
+  askOpen("Meisterschaft l\u00f6schen",
+    '<div class="askInfo warn"><b>'+esc(liga.name)+"</b><br>"+
+    liga.spieler.length+" Spieler, "+liga.ergebnisse.length+
+    (liga.ergebnisse.length===1?" Ergebnis":" Ergebnisse")+
+    ".<br>Die Matches selbst bleiben in der Liste, nur die "+
+    "Tabelle ist weg.<br>Das l\u00e4sst sich nicht r\u00fcckg\u00e4ngig "+
+    "machen.</div>",
+    "Endg\u00fcltig l\u00f6schen",function(){ligaLoeschen(id);ligenSeite();},
+    "Doch behalten",function(){ligaAuf(id);});
+  askOhneAbbruch();
+}
+
+/* Ein gespeichertes Match ansehen und bei Bedarf weiterspielen. */
+function matchDetail(i){
+  var a=alleMatches(),m=a[i],h,kn,pr,j;
+  if(!m){listeSeite();return;}
+  h='<div class="askInfo"><b>'+esc(m.spieler[0])+" "+m.frames[0]+"–"+
+    m.frames[1]+" "+esc(m.spieler[1])+"</b><br>"+
+    datumKurz(m.gespeichert)+" "+zeitKurz(m.gespeichert)+
+    (m.liga?"<br>Meisterschaft: "+esc(m.liga.name):"")+
+    "<br>Punkte im letzten Frame "+m.punkte[0]+"–"+m.punkte[1]+
+    "<br>"+m.rote+" Rote</div>";
+  /* Aeltere Matches tragen den Text noch selbst, neue nicht mehr -
+     dann wird er aus dem verlauf gebaut. */
+  pr=m.protokoll||protokollAus(m.verlauf,m.spieler);
+  if(pr.length){
+    h+="<h3>ENDE DES PROTOKOLLS</h3><div class=\"leer\">";
+    for(j=pr.length-1;j>=0&&j>pr.length-9;j--)h+=esc(pr[j])+"<br>";
+    h+="</div>";
+  }
+  kn=[];
+  if(m.stand){
+    kn.push({t:"Weiterspielen",f:function(){gespeichertFortsetzen(i);}});
+  }else{
+    h+='<div class="askInfo warn">Von diesem Match ist nur das Ergebnis '+
+       "übrig. Weiterspielen geht nur bei den "+STAENDE+" neuesten.</div>";
+  }
+  kn.push({t:"Zurück",f:listeSeite,zurueck:true});
+  kn.push({t:"Match löschen",f:function(){matchLoeschenFragen(i);},weg:true});
+  seiteOpen("Match",h,kn);
+}
+
+/* Ein gespeichertes Match wieder aufnehmen. Läuft gerade ein anderes,
+   wird vorher gefragt - es würde sonst überschrieben. */
+function gespeichertFortsetzen(i){
+  var a=alleMatches(),m=a[i],r=laufendLesen();
+  if(!m||!m.stand){listeSeite();return;}
+  if(r&&etwasPassiert(r.S)&&r.mid!==m.id){
+    seiteZu();
+    askOpen("Es läuft noch ein anderes Match",
+      '<div class="askInfo">'+esc(r.namen[0])+" gegen "+esc(r.namen[1])+
+      ", Frames "+r.S.fr[0]+"–"+r.S.fr[1]+
+      ".<br>Es wird verworfen, wenn du das gespeicherte aufnimmst.</div>",
+      "Gespeichertes weiterspielen",function(){weiterspielen(standAus(m));},
+      "Beim laufenden bleiben",function(){weiterspielen(r);});
+    askOhneAbbruch();
+    return;
+  }
+  weiterspielen(standAus(m)); draw();
+}
+
+/* ---------- Alles exportieren ----------
+   Sicherungsdatei mit allem, was im Tablet liegt: fertige Matches,
+   Meisterschaften und der gerade laufende Stand. */
+function exportAlles(danach){
+  var a=alleMatches(), lauf=laufendLesen(), lg=ligenLesen(), d, txt, kb, f;
+  if(!lauf&&etwasPassiert())
+    lauf=standJetzt();
+  seiteZu(); el("ovHome").className="ov"; el("ovMenu").className="ov";
+  if(!a.length&&!lauf&&!lg.length){
+    askOpen("Nichts zu sichern",
+      '<div class="askInfo">Es ist noch nichts gespeichert.</div>',
+      "Alles klar",danach||null);
+    return;
+  }
+  d={typ:"snooker-alles",version:3,erzeugt:new Date().toISOString(),
+     anzahl:a.length,matches:a,ligen:lg,laufend:lauf,
+     spieler:spielerLesen()};
+  txt=JSON.stringify(d);
+  kb=Math.round(txt.length/1024);
+  f=dateiRunter(txt,"snooker-alles-"+d.erzeugt.slice(0,10)+".json");
+  if(!f){
+    askOpen("Nicht geklappt",
+      '<div class="askInfo warn">Der Download ging nicht. Es ist aber '+
+      "nichts verloren – alles liegt weiter im Tablet.</div>",
+      "Zurück",danach||null);
+    return;
+  }
+  askOpen("Exportiert",
+    '<div class="askInfo">'+a.length+
+    (a.length===1?" gespeichertes Match":" gespeicherte Matches")+
+    (lg.length?", "+lg.length+" "+
+               (lg.length===1?"Meisterschaft":"Meisterschaften"):"")+
+    (lauf?" und das laufende Match":"")+", "+kb+" KB.<br>Datei: "+esc(f)+
+    "</div>",
+    "Alles klar",danach||null);
+}
+
+/* ---------- Sicherung einlesen ----------
+   Gegenstueck zu "Alles exportieren". Es wird nur ergaenzt, nie
+   ueberschrieben: Matches, Meisterschaften und Spieler, die hier schon
+   liegen, bleiben so, wie sie sind. Der laufende Stand aus der Datei
+   wird nur auf Nachfrage uebernommen. */
+var impDanach=null;
+
+function importAlles(danach){
+  impDanach=danach||null;
+  seiteZu(); el("ovHome").className="ov"; el("ovMenu").className="ov";
+  if(!LSOK){
+    askOpen("Einlesen geht nicht",
+      '<div class="askInfo warn">Dieser Browser speichert nichts im Gerät. '+
+      "Eingelesene Daten wären sofort wieder weg.</div>",
+      "Zurück",impDanach);
+    return;
+  }
+  var inp=el("impFile");
+  try{inp.value="";}catch(e){}
+  inp.click();
+}
+
+/* Aus der Datei wird erst gelesen, dann gezaehlt, dann gefragt. */
+/* Sicherheitsnetz: geht beim Einlesen doch etwas schief, soll der Nutzer
+   das sehen und nicht vor einer Seite stehen, in der nichts passiert. */
+function importMachenSicher(d){
+  try{importMachen(d);}
+  catch(e){
+    askOpen("Beim Einlesen ist etwas schiefgegangen",
+      '<div class="askInfo warn">Die Datei ließ sich nicht ganz einlesen. '+
+      "Ein Teil kann schon angekommen sein.<br><br>Meldung: "+
+      esc(String(e&&e.message||e))+"</div>","Zurück",impDanach);
+  }
+}
+
+function importText(txt){
+  var d,mm,i;
+  try{d=JSON.parse(txt);}catch(e){d=null;}
+  if(!d||typeof d!=="object"){
+    askOpen("Keine Snooker-Datei",
+      '<div class="askInfo warn">Die Datei lässt sich nicht lesen. '+
+      "Es wurde nichts geändert.</div>","Zurück",impDanach);
+    return;
+  }
+  /* Auch eine Datei mit nur einem Match darf hier hinein. */
+  if(d.typ!=="snooker-alles"){
+    if(d.spieler&&d.spieler.length===2&&d.gespeichert)
+      d={typ:"snooker-alles",matches:[d],ligen:[],spieler:[],laufend:null};
+    else{
+      askOpen("Keine Snooker-Datei",
+        '<div class="askInfo warn">Das ist keine Sicherung aus dieser App. '+
+        "Es wurde nichts geändert.</div>","Zurück",impDanach);
+      return;
+    }
+  }
+  var mDat=d.matches||[], lDat=d.ligen||[], sDat=d.spieler||[],
+      mHier=matchesMitId(), lHier=ligenLesen(), sHier=spielerLesen(),
+      hier={},neuM=0,neuL=0,gleichL=0,neuS=0;
+  for(i=0;i<mHier.length;i++)if(mHier[i].id)hier[mHier[i].id]=1;
+  for(i=0;i<mDat.length;i++){
+    mm=mDat[i];
+    if(!mm)continue;
+    if(!mm.id||!hier[mm.id])neuM++;
+  }
+  for(i=0;i<lDat.length;i++)
+    if(lDat[i]&&lDat[i].id){
+      if(ligaPos(lHier,lDat[i].id)>=0)gleichL++; else neuL++;
+    }
+  for(i=0;i<sDat.length;i++)
+    if(sDat[i]&&!spielerHat(sHier,sDat[i]))neuS++;
+
+  if(!neuM&&!neuL&&!gleichL&&!neuS&&!d.laufend){
+    askOpen("Nichts Neues",
+      '<div class="askInfo">Alles aus dieser Datei liegt schon im Gerät. '+
+      "Es wurde nichts geändert.</div>","Alles klar",impDanach);
+    return;
+  }
+  askOpen("Sicherung einlesen",
+    '<div class="askInfo">In der Datei stehen '+mDat.length+
+    (mDat.length===1?" Match":" Matches")+".<br>"+
+    "Neu für dieses Gerät: <b>"+neuM+"</b> "+
+    (neuM===1?"Match":"Matches")+
+    (neuL?", <b>"+neuL+"</b> "+(neuL===1?"Meisterschaft":"Meisterschaften"):"")+
+    (gleichL?", "+gleichL+" bekannte "+
+      (gleichL===1?"Meisterschaft wird ergänzt":"Meisterschaften werden ergänzt"):"")+
+    (neuS?", <b>"+neuS+"</b> Spieler":"")+".<br>"+
+    (d.laufend&&d.laufend.S?"Dazu ein laufendes Match.<br>":"")+"<br>"+
+    "Was hier schon liegt, bleibt unangetastet.</div>",
+    "Einlesen",function(){importMachenSicher(d);},
+    "Abbrechen",impDanach);
+}
+
+function ligaPos(l,id){
+  var i;
+  for(i=0;i<l.length;i++)if(l[i]&&l[i].id===id)return i;
+  return -1;
+}
+function spielerHat(a,n){
+  var i;
+  for(i=0;i<a.length;i++)if(a[i]===n)return true;
+  return false;
+}
+
+/* Den Stand aus der Datei aufnehmen. Laeuft hier gerade ein anderes
+   Match, wird vorher gefragt - es waere sonst weg. Genauso macht es
+   gespeichertFortsetzen(). */
+function laufUebernehmen(lauf){
+  var r=laufendLesen();
+  if(!r)r=(etwasPassiert()?standJetzt():null);
+  if(r&&etwasPassiert(r.S)&&r.mid!==lauf.mid){
+    askOpen("Es läuft noch ein anderes Match",
+      '<div class="askInfo">'+esc(r.namen[0])+" gegen "+esc(r.namen[1])+
+      ", Frames "+r.S.fr[0]+"–"+r.S.fr[1]+
+      ".<br>Es wird verworfen, wenn du den Stand aus der Datei aufnimmst."+
+      "</div>",
+      "Stand aus der Datei",function(){weiterspielen(lauf);draw();},
+      "Beim laufenden bleiben",function(){weiterspielen(r);draw();});
+    askOhneAbbruch();
+    return;
+  }
+  weiterspielen(lauf); draw();
+}
+
+function importMachen(d){
+  var mDat=d.matches||[], lDat=d.ligen||[], sDat=d.spieler||[],
+      m=matchesMitId(), l=ligenLesen(), sp=spielerLesen(),
+      tot=totLesen(), hier={}, vorher={}, i, k, p, mm,
+      ber={m:0,l:0,lPlus:0,s:0}, klemmt=false;
+  for(i=0;i<m.length;i++)if(m[i].id){
+    hier[m[i].id]=1;
+    /* Wer schon einen vollen Spielstand hat, soll ihn behalten. */
+    if(m[i].stand)vorher[m[i].id]=m[i].stand;
+  }
+
+  /* Matches: nur die, die hier fehlen. */
+  for(i=0;i<mDat.length;i++){
+    mm=mDat[i];
+    if(!mm)continue;
+    if(!mm.id)mm.id="M"+(new Date(mm.gespeichert).getTime()||Date.now())+"-i"+i;
+    if(hier[mm.id])continue;
+    m.push(mm); hier[mm.id]=1; ber.m++;
+    tot.m=totOhne(tot.m,mm.id);
+  }
+  if(ber.m){
+    matchNachDatum(m);
+    /* Aufraeumen laesst nur den STAENDE neuesten Matches ihren vollen
+       Spielstand. Das darf aber nichts wegnehmen, was vor dem Einlesen
+       schon da war - der Dialog verspricht ausdruecklich, dass alles
+       Vorhandene unangetastet bleibt. */
+    staendeAufraeumen(m);
+    for(i=0;i<m.length;i++)
+      if(m[i].id&&!m[i].stand&&vorher[m[i].id])m[i].stand=vorher[m[i].id];
+  }
+  if(!matchesSchreiben(m))klemmt=true;
+
+  /* Meisterschaften: bekannte werden zusammengelegt, neue angehaengt. */
+  for(i=0;i<lDat.length;i++){
+    if(!lDat[i]||!lDat[i].id)continue;
+    p=ligaPos(l,lDat[i].id);
+    if(p>=0){l[p]=ligaMischen(l[p],lDat[i]); ber.lPlus++;}
+    else{l.push(lDat[i]); ber.l++;}
+    tot.l=totOhne(tot.l,lDat[i].id);
+  }
+  if(!ligenSchreiben(l))klemmt=true;
+
+  /* Spieler */
+  for(i=0;i<sDat.length;i++){
+    k=sDat[i];
+    if(!k||spielerHat(sp,k))continue;
+    sp.push(k); ber.s++;
+    tot.s=totOhne(tot.s,k);
+  }
+  if(!spielerSchreiben(spielerSort(sp)))klemmt=true;
+  totSchreiben(tot);
+
+  /* Ist der Speicher des Geraets voll, schreibt localStorage gar nichts.
+     Dann darf hier kein Erfolg gemeldet werden. */
+  if(klemmt){
+    askOpen("Nicht gespeichert",
+      '<div class="askInfo warn">Der Speicher des Geräts ist voll. '+
+      "Die Sicherung konnte nicht abgelegt werden.<br><br>Es ist nichts "+
+      "kaputtgegangen – im Gerät steht alles wie vorher. Lösche ein paar "+
+      "alte Matches und versuche es noch einmal.</div>",
+      "Zurück",impDanach);
+    return;
+  }
+
+  var h='<div class="askInfo">Dazugekommen: <b>'+ber.m+'</b> '+
+        (ber.m===1?"Match":"Matches")+
+        (ber.l?", <b>"+ber.l+"</b> "+
+          (ber.l===1?"Meisterschaft":"Meisterschaften"):"")+
+        (ber.lPlus?", "+ber.lPlus+" ergänzt":"")+
+        (ber.s?", <b>"+ber.s+"</b> Spieler":"")+".</div>";
+  var lauf=d.laufend;
+  if(lauf&&lauf.S&&lauf.namen){
+    h+='<div class="askInfo">In der Datei steckt außerdem ein laufendes '+
+       "Match: <b>"+esc(lauf.namen[0])+" "+lauf.S.fr[0]+"–"+lauf.S.fr[1]+
+       " "+esc(lauf.namen[1])+"</b>, Punkte im Frame "+lauf.S.sc[0]+"–"+
+       lauf.S.sc[1]+".</div>";
+    askOpen("Eingelesen",h,
+      "Diesen Stand weiterspielen",function(){laufUebernehmen(lauf);},
+      "Nur die Matches behalten",impDanach);
+    return;
+  }
+  askOpen("Eingelesen",h,"Alles klar",impDanach);
+}
+
+/* Eine Kennung aus der Merkliste des Geloeschten nehmen - sonst wuerde
+   der naechste Abgleich das gerade Eingelesene wieder wegraeumen. */
+function totOhne(a,id){
+  var r=[],i;
+  for(i=0;i<a.length;i++)if(a[i]!==id)r.push(a[i]);
+  return r;
+}
+
+el("impFile").addEventListener("change",function(){
+  var f=this.files&&this.files[0],r;
+  if(!f)return;
+  if(!window.FileReader){
+    askOpen("Geht hier nicht",
+      '<div class="askInfo warn">Dieser Browser kann keine Dateien lesen.'+
+      "</div>","Zurück",impDanach);
+    return;
+  }
+  r=new FileReader();
+  r.onload=function(){importText(String(r.result||""));};
+  r.onerror=function(){
+    askOpen("Nicht geklappt",
+      '<div class="askInfo warn">Die Datei ließ sich nicht öffnen. '+
+      "Es wurde nichts geändert.</div>","Zurück",impDanach);
+  };
+  r.readAsText(f);
+},false);
+
+el("hImport").addEventListener("click",function(){importAlles(homeAuf);},false);
+el("mImport").addEventListener("click",function(){importAlles(null);},false);
+
+/* ---------- Startseite ---------- */
+function homeAuf(){
+  var r=laufendLesen(), a=alleMatches(), lg=ligenLesen(), h;
+  seiteZu();
+  el("ovLigaNeu").className="ov";
+  el("ovStart").className="ov";
+  el("ovMenu").className="ov";
+  el("ovAsk").className="ov";
+  if(r&&etwasPassiert(r.S)){
+    h='<div class="askInfo"><b>'+esc(r.namen[0])+" "+r.S.fr[0]+"–"+
+      r.S.fr[1]+" "+esc(r.namen[1])+"</b><br>Punkte im Frame "+
+      r.S.sc[0]+"–"+r.S.sc[1]+
+      (r.liga?"<br>Meisterschaft: "+esc(r.liga.name):"")+
+      "<br>Zuletzt gespeichert: "+datumKurz(r.zeit)+" "+zeitKurz(r.zeit)+
+      "</div>";
+    el("hWeiter").style.display="";
+  }else{
+    h='<div class="askInfo">'+
+      (a.length?a.length+(a.length===1?" Match":" Matches")+" gespeichert."
+              :"Noch kein Match gespeichert.")+
+      (lg.length?" "+lg.length+" "+
+                 (lg.length===1?"Meisterschaft":"Meisterschaften")+"."
+                :"")+
+      (LSOK?"":"<br>Achtung: dieser Browser speichert nicht im Gerät.")+
+      "</div>";
+    el("hWeiter").style.display="none";
+  }
+  el("homeInfo").innerHTML=h;
+  el("ovHome").className="ov on";
+}
+el("hWeiter").addEventListener("click",function(){
+  var r=laufendLesen();
+  if(!r||!etwasPassiert(r.S)){homeAuf();return;}
+  weiterspielen(r); draw();
+},false);
+el("hNeu").addEventListener("click",function(){
+  var r=laufendLesen();
+  if(r&&etwasPassiert(r.S)){
+    el("ovHome").className="ov";
+    askOpen("Es läuft noch ein Match",
+      '<div class="askInfo">'+esc(r.namen[0])+" gegen "+esc(r.namen[1])+
+      ", Frames "+r.S.fr[0]+"–"+r.S.fr[1]+
+      ".<br>Ein neues Match wirft es weg.</div>",
+      "Verwerfen und neu",function(){
+        aktuelleLiga=null; startDialogMit(r.namen[0],r.namen[1]);
+      },
+      "Doch fortsetzen",function(){weiterspielen(r);});
+    askOhneAbbruch();
+    return;
+  }
+  aktuelleLiga=null;
+  startDialogMit("","");
+},false);
+el("hLiga").addEventListener("click",ligenSeite,false);
+el("hListe").addEventListener("click",listeSeite,false);
+el("hExport").addEventListener("click",function(){exportAlles(homeAuf);},false);
+el("mHome").addEventListener("click",function(){
+  el("ovMenu").className="ov"; homeAuf();
+},false);
+el("sBack").addEventListener("click",homeAuf,false);
+
+/* ---------- Gespeicherte Spieler ----------
+   Eine schlichte Namensliste unter "snooker_spieler". Jeder Name, mit dem
+   ein Match oder eine Meisterschaft anfaengt, landet darin. Beim naechsten
+   Match steht er als Knopf unter dem Eingabefeld. */
+var SPKEY="snooker_spieler";
+
+function spielerLesen(){
+  if(!LSOK)return [];
+  try{
+    var a=JSON.parse(window.localStorage.getItem(SPKEY)||"[]"),b=[],i;
+    if(!a||!a.length)return [];
+    for(i=0;i<a.length;i++)
+      if(typeof a[i]==="string"&&a[i])b.push(a[i]);
+    return b;
+  }catch(e){return [];}
+}
+function spielerSchreiben(a){
+  if(!LSOK)return false;
+  try{window.localStorage.setItem(SPKEY,JSON.stringify(a));return true;}
+  catch(e){return false;}
+}
+function spielerSort(a){
+  a.sort(function(x,y){
+    var p=x.toLowerCase(),q=y.toLowerCase();
+    return p<q?-1:(p>q?1:0);
+  });
+  return a;
+}
+/* Gross- und Kleinschreibung entscheidet nicht: "Ich" und "ich" sind
+   derselbe Spieler. Gespeichert bleibt die zuerst eingetippte Fassung. */
+function spielerMerken(n){
+  n=String(n==null?"":n).replace(/^\s+|\s+$/g,"");
+  if(!n)return;
+  var a=spielerLesen(),i;
+  for(i=0;i<a.length;i++)if(a[i].toLowerCase()===n.toLowerCase())return;
+  a.push(n);
+  spielerSchreiben(spielerSort(a));
+}
+function spielerWeg(n){
+  var a=spielerLesen(),b=[],i;
+  totMerken("s",n);
+  for(i=0;i<a.length;i++)if(a[i]!==n)b.push(a[i]);
+  spielerSchreiben(b);
+}
+
+/* Die Auswahllisten im Startdialog. Jede Liste zeigt die gemerkten Namen
+   und ganz unten "Neuer Name". Erst dann taucht das Tippfeld auf. */
+function nameFeld(k,an){
+  el("sn"+k).className=an?"":"weg";
+}
+function nameListe(k){
+  var a=spielerLesen(),h,i,drin=false,
+      jetzt=(el("sn"+k).value||"").replace(/^\s+|\s+$/g,"");
+  h='<option value="">– Name wählen –</option>';
+  for(i=0;i<a.length;i++){
+    if(a[i]===jetzt)drin=true;
+    h+='<option value="'+esc(a[i])+'">'+esc(a[i])+"</option>";
+  }
+  h+='<option value="__neu">Neuer Name …</option>';
+  el("sel"+k).innerHTML=h;
+  if(drin){el("sel"+k).value=jetzt; nameFeld(k,false);}
+  else if(jetzt||!a.length){el("sel"+k).value="__neu"; nameFeld(k,true);}
+  else {el("sel"+k).value=""; nameFeld(k,false);}
+}
+/* "Los" bleibt gesperrt, solange ein Name fehlt. */
+function losPruefen(){
+  var a=(el("sn0").value||"").replace(/^\s+|\s+$/g,""),
+      b=(el("sn1").value||"").replace(/^\s+|\s+$/g,"");
+  el("sOk").disabled=!(a&&b);
+}
+function startNamenZeichnen(){nameListe(0);nameListe(1);losPruefen();}
+function nameWahl(k){
+  return function(){
+    var v=el("sel"+k).value;
+    if(v==="__neu"){
+      el("sn"+k).value=""; nameFeld(k,true);
+      try{el("sn"+k).focus();}catch(e){}
+    }else{
+      el("sn"+k).value=v; nameFeld(k,false);
+    }
+    losPruefen();
+  };
+}
+el("sel0").addEventListener("change",nameWahl(0),false);
+el("sel1").addEventListener("change",nameWahl(1),false);
+el("sn0").addEventListener("input",losPruefen,false);
+el("sn1").addEventListener("input",losPruefen,false);
+
+/* Seite "Spieler" von der Startseite aus: nachtragen und wegnehmen. */
+function spielerSeite(){
+  var a=spielerLesen(),h,i;
+  h='<div class="askInfo">Diese Namen stehen beim neuen Match zur Auswahl.'+
+    (LSOK?"":"<br>Achtung: dieser Browser speichert nicht im Gerät.")+
+    "</div>";
+  if(!a.length){
+    h+='<div class="leer">Noch keine Namen gemerkt. Sie kommen von selbst '+
+       "dazu, sobald ein Match mit einem Namen anfängt.</div>";
+  }else{
+    h+='<div class="liste">';
+    for(i=0;i<a.length;i++)
+      h+='<button class="zeile" data-z="'+i+'"><b>'+esc(a[i])+
+         "</b><em>löschen</em></button>";
+    h+="</div>";
+  }
+  seiteOpen("Spieler",h,
+    [{t:"Namen hinzufügen",f:spielerNeuAuf},
+     {t:"Zurück",f:homeAuf,zurueck:true}],
+    function(z){
+      var n=a[parseInt(z,10)];
+      if(n)spielerLoeschenFragen(n);
+    });
+}
+function spielerNeuAuf(){
+  seiteZu();
+  askOpen("Namen hinzufügen",
+    '<input id="spNeu" type="text" autocomplete="off">',
+    "Merken",function(){spielerMerken(el("spNeu").value);spielerSeite();},
+    "Zurück",spielerSeite);
+  askOhneAbbruch();
+}
+function spielerLoeschenFragen(n){
+  seiteZu();
+  askOpen("Spieler löschen",
+    '<div class="askInfo warn"><b>'+esc(n)+"</b><br>Nur der Name aus der "+
+    "Auswahlliste. Gespielte Matches und Meisterschaften bleiben, wie sie "+
+    "sind.</div>",
+    "Löschen",function(){spielerWeg(n);spielerSeite();},
+    "Doch behalten",spielerSeite);
+  askOhneAbbruch();
+}
+el("hSpieler").addEventListener("click",spielerSeite,false);
+/* Die Auswertung ist eine eigene Seite im selben Ordner. Sie geht in einem
+   neuen Tab auf, damit das Match hier stehen bleibt und die Auswertung
+   keinen eigenen Rueckweg braucht. Falls der Browser das neue Fenster
+   blockt, wechselt die Seite wie frueher direkt. */
+el("hAuswert").addEventListener("click",function(){
+  var w=null;
+  try{ w=window.open("auswertung.html","snookerAuswertung"); }catch(e){ w=null; }
+  if(w){ try{ w.focus(); }catch(e2){} }
+  else{ window.location.href="auswertung.html"; }
+},false);
+
+/* ---------- Neues Match ---------- */
+var startReds=15,startBreak=0;
+group("sReds",function(b){startReds=parseInt(b.getAttribute("data-n"),10);});
+group("sBreak",function(b){startBreak=parseInt(b.getAttribute("data-n"),10);});
+/* Vorbereiteter Startdialog. Die Meisterschaft bleibt dabei stehen -
+   der Weg ueber die Liga setzt sie vorher. */
+function startDialogMit(a,b){
+  sichern=false; laufendWeg();
+  el("sn0").value=a||"";
+  el("sn1").value=b||"";
+  el("ovHome").className="ov";
+  el("ovAsk").className="ov";
+  seiteZu();
+  startNamenZeichnen();
+  el("ovStart").className="ov on";
+}
+/* Startdialog ohne Meisterschaft. */
+/* Von der Startseite und aus dem Menue: beide Felder leer, es wird
+   gewaehlt. Nur der Weg ueber die Meisterschaft setzt die Namen vorher. */
+function startDialog(){aktuelleLiga=null; startDialogMit("","");}
+el("sOk").addEventListener("click",function(){
+  var a=el("sn0").value.replace(/^\s+|\s+$/g,""),
+      b=el("sn1").value.replace(/^\s+|\s+$/g,"");
+  NAME[0]=a||"Spieler 1"; NAME[1]=b||"Spieler 2";
+  spielerMerken(NAME[0]); spielerMerken(NAME[1]);
+  redsTotal=startReds;
+  S=fresh(startBreak);
+  hist=[];comm=[];verlauf=[];commFrisch();
+  matchId=neueMatchId();
+  if(aktuelleLiga)say("— Meisterschaft: "+aktuelleLiga.name+" —",false);
+  say("Neuer Frame, "+redsTotal+" Rote.",false);
+  S.frStart=comm.length;
+  el("ovStart").className="ov";
+  pausiert=false; taktAus(); sichern=true;
+  draw();
+},false);
+
+/* ---------- Unterbrochenes Match fortsetzen ---------- */
+function weiterspielen(r){
+  NAME[0]=r.namen[0]; NAME[1]=r.namen[1];
+  redsTotal=r.rote||15;
+  S=r.S; comm=r.comm||[]; verlauf=r.verlauf||[]; hist=[]; commFrisch();
+  longOn=!!r.lg; snookOn=!!r.sn; freeOn=!!r.fb; flukeOn=!!r.flk;
+  aktuelleLiga=r.liga||null;
+  matchId=r.mid||neueMatchId();
+  /* Staende aus einer aelteren Fassung kennen die Zeitfelder noch nicht. */
+  if(!S.shots){S.shots=[0,0];S.shotMs=[0,0];}
+  /* Und die aus der Zeit vor dem Fluke kennen Safe-Quote und Flukes nicht. */
+  if(!S.flukes)S.flukes=[0,0];
+  if(!S.safesWeg)S.safesWeg=[0,0];
+  if(S.safeOffen===undefined)S.safeOffen=null;
+  if(typeof S.frameMs!=="number")S.frameMs=0;
+  if(typeof S.matchMs!=="number")S.matchMs=0;
+  if(typeof S.pausenMs!=="number")S.pausenMs=0;
+  /* Staende aus der Zeit vor den Frame-Zahlen kennen frStart nicht.
+     Dann faengt der laufende Frame ab hier an - die Frames davor
+     lassen sich nicht mehr auftrennen. */
+  if(typeof S.frStart!=="number")S.frStart=0;
+  say("— Match fortgesetzt. —",false);
+  el("ovHome").className="ov";
+  el("ovStart").className="ov";
+  el("ovAsk").className="ov";
+  seiteZu();
+  pausiert=false; taktAus(); sichern=true;
+}
+
+/* ---------- Stats-Ansicht ---------- */
+function pct(a,b){return b>0?Math.round(a*100/b)+"%":"–";}
+function anteil(a,b){
+  var g=a+b; return g>0?Math.round(a*100/g):50;
+}
+function sRow(links,label,rechts){
+  return '<div class="srow"><div class="sv">'+links+'</div>'+
+         '<div class="sl">'+label+'</div>'+
+         '<div class="sv r">'+rechts+"</div></div>";
+}
+function sQuote(label,h0,t0,h1,t1){
+  var v0=pct(h0,t0),v1=pct(h1,t1),
+      leer=(t0===0&&t1===0),
+      w=leer?0:anteil(t0>0?Math.round(h0*100/t0):0,t1>0?Math.round(h1*100/t1):0);
+  return sRow(v0+' <em>('+h0+"/"+t0+")</em>",label,
+              '<em>('+h1+"/"+t1+")</em> "+v1)+
+         '<div class="sbar'+(leer?" off":"")+'"><i style="width:'+w+'%"></i></div>';
+}
+function sZahl(label,a,b){
+  var leer=(a+b===0);
+  return sRow(a,label,b)+
+         '<div class="sbar'+(leer?" off":"")+'"><i style="width:'+
+         (leer?0:anteil(a,b))+'%"></i></div>';
+}
+/* Zeile ohne Balken. Bei Fehlern ist mehr schlechter, ein Balken wuerde
+   das Gegenteil nahelegen. Bei Zeiten gibt es kein besser oder
+   schlechter, deshalb dort ebenfalls nur die nackten Zahlen. */
+function sNur(label,a,b){
+  return '<div class="srow plain"><div class="sv">'+a+"</div>"+
+         '<div class="sl">'+label+"</div>"+
+         '<div class="sv r">'+b+"</div></div>";
+}
+function sFehler(label,a,b){return sNur(label,a,b);}
+/* Anteil zweier Zeiten, als Prozent mit Balken. */
+function sAnteil(label,a,b){
+  var g=a+b,p=g>0?Math.round(a*100/g):50;
+  return sRow(p+"%",label,(g>0?100-p:50)+"%")+
+         '<div class="sbar'+(g?"":" off")+'"><i style="width:'+
+         (g?p:0)+'%"></i></div>';
+}
+/* ---------- Stats je Frame ----------
+   Oben eine Knopfreihe: "Gesamt" und je ein Knopf pro Frame. Die Zahlen
+   eines Frames sind die Differenz der Zaehlerstaende zum Frame davor. */
+var statSel="gesamt";
+
+/* Alle Frames: die fertigen aus verlauf, dahinter der laufende - aber
+   nur, wenn darin schon etwas passiert ist. Dieselbe Liste wandert beim
+   Speichern ins Match, damit auch der angefangene Frame seine Zahlen
+   behaelt. */
+function frameListe(){
+  var l=verlauf.slice(0),ev=comm.slice(S.frStart||0);
+  if(S.phase!=="done"&&(ev.length||S.sc[0]||S.sc[1]))
+    l.push({nr:l.length+1,punkte:[S.sc[0],S.sc[1]],gewinner:null,
+            annulliert:false,unvollstaendig:true,anstoss:S.first,
+            dauerMs:S.frameMs,ereignisse:ev,summe:summeJetzt()});
+  return l;
+}
+/* Frames aus einer aelteren Fassung kennen einzelne Felder nicht -
+   dann zaehlt null, statt dass die Ansicht stehenbleibt. */
+function dif(a,b,k){
+  var x=a[k]||[0,0], y=(b&&b[k])||[0,0];
+  return [x[0]-y[0], x[1]-y[1]];
+}
+function difGrund(a,b){
+  var r=[{},{}],p,n;
+  for(p=0;p<2;p++)for(n in a[p])if(a[p].hasOwnProperty(n))
+    r[p][n]=a[p][n]-((b&&b[p][n])||0);
+  return r;
+}
+/* Ein Hoechstwert laesst sich nicht subtrahieren - das hoechste Break
+   eines Frames kommt deshalb aus seinen Ereignissen. */
+function hoechstes(ev){
+  var h=[0,0],i,e;
+  for(i=0;i<ev.length;i++){
+    e=ev[i];
+    if(e.typ==="break"&&e.p>h[e.sp])h[e.sp]=e.p;
+  }
+  return h;
+}
+function zahlenFuer(sel){
+  var l,f,v,d={};
+  if(sel==="gesamt")
+    return {pots:S.pots,miss:S.miss,safes:S.safes,snooks:S.snooks,
+            snookWon:S.snookWon,safesWeg:S.safesWeg,flukes:S.flukes,
+            fouls:S.fouls,foulsSnk:S.foulsSnk,
+            fpts:S.fpts,longTry:S.longTry,longHit:S.longHit,
+            posTry:S.posTry,posHit:S.posHit,shots:S.shots,shotMs:S.shotMs,
+            freason:S.freason,hiBrk:S.hiBrk,dauerMs:S.matchMs,frame:null};
+  l=frameListe(); f=l[sel];
+  if(!f)return zahlenFuer("gesamt");
+  v=sel>0?l[sel-1].summe:null;
+  d.pots=dif(f.summe,v,"pots");       d.miss=dif(f.summe,v,"miss");
+  d.safes=dif(f.summe,v,"safes");     d.snooks=dif(f.summe,v,"snooks");
+  d.snookWon=dif(f.summe,v,"snookWon");
+  d.safesWeg=dif(f.summe,v,"safesWeg");
+  d.flukes  =dif(f.summe,v,"flukes");
+  d.fouls=dif(f.summe,v,"fouls");     d.foulsSnk=dif(f.summe,v,"foulsSnk");
+  d.fpts=dif(f.summe,v,"fpts");
+  d.longTry=dif(f.summe,v,"longTry"); d.longHit=dif(f.summe,v,"longHit");
+  d.posTry=dif(f.summe,v,"posTry");   d.posHit=dif(f.summe,v,"posHit");
+  d.shots=dif(f.summe,v,"shots");     d.shotMs=dif(f.summe,v,"shotMs");
+  d.freason=difGrund(f.summe.freason,v?v.freason:null);
+  d.hiBrk=hoechstes(f.ereignisse);
+  d.dauerMs=f.dauerMs; d.frame=f;
+  return d;
+}
+
+function frameWahl(){
+  var l=frameListe(),h='<div class="fsel">',i,f;
+  h+='<button class="fs'+(statSel==="gesamt"?" on":"")+
+     '" data-f="gesamt">Gesamt</button>';
+  for(i=0;i<l.length;i++){
+    f=l[i];
+    h+='<button class="fs'+(statSel===i?" on":"")+'" data-f="'+i+'">'+
+       f.nr+(f.annulliert?"↻":"")+(f.unvollstaendig?"·":"")+"</button>";
+  }
+  return h+"</div>";
+}
+/* Kopfzeile: worauf man gerade schaut. */
+function statKopf(A){
+  var f=A.frame;
+  if(!f)
+    return '<div class="fhd">Ganzes Match · Frames '+S.fr[0]+"–"+S.fr[1]+
+           " · "+msTxt(S.matchMs)+"</div>";
+  return '<div class="fhd">Frame '+f.nr+
+         (f.annulliert?" (Re-rack, zählt nicht)":"")+
+         (f.unvollstaendig?" (läuft)":"")+" · "+f.punkte[0]+"–"+f.punkte[1]+
+         (f.gewinner===0||f.gewinner===1?" · "+esc(NAME[f.gewinner])+" gewinnt":"")+
+         " · "+msTxt(f.dauerMs)+" · Anstoß "+esc(NAME[f.anstoss])+"</div>";
+}
+
+function drawStats(){
+  var A=zahlenFuer(statSel);
+  var h='<div class="sh"><div class="p0">'+esc(NAME[0])+'</div>'+
+        '<div class="p1">'+esc(NAME[1])+"</div></div>";
+  h+=frameWahl();
+  h+=statKopf(A);
+
+  h+='<div class="sgrp">ANGRIFF</div>';
+  h+=sQuote("Pot-Quote",A.pots[0],A.pots[0]+A.miss[0],
+                        A.pots[1],A.pots[1]+A.miss[1]);
+  /* Flukes stecken in den gelochten Baellen mit drin - der Punkt zaehlt
+     ja. Hier stehen sie einzeln, damit man weiss, wie viel davon
+     Glueck war. Ohne Balken: mehr Flukes ist nicht besser. */
+  h+=sNur("davon Flukes",A.flukes[0],A.flukes[1]);
+  h+=sQuote("Long Pots",A.longHit[0],A.longTry[0],A.longHit[1],A.longTry[1]);
+  h+=sQuote("Zweite Bälle",A.posHit[0],A.posTry[0],A.posHit[1],A.posTry[1]);
+  h+=sZahl("Höchstes Break",A.hiBrk[0],A.hiBrk[1]);
+
+  h+='<div class="sgrp">SICHERHEIT</div>';
+  h+=sZahl("Safes",A.safes[0],A.safes[1]);
+  /* Ein Safe hat gehalten, wenn der Gegner danach nicht gepunktet hat.
+     Ein Fluke des Gegners zaehlt nicht dagegen. */
+  h+=sQuote("Safe-Quote",A.safes[0]-A.safesWeg[0],A.safes[0],
+                         A.safes[1]-A.safesWeg[1],A.safes[1]);
+  h+=sQuote("davon mit Snooker",A.snooks[0],A.safes[0],A.snooks[1],A.safes[1]);
+  h+=sQuote("Snooker brachte Foul",A.snookWon[0],A.snooks[0],
+                                   A.snookWon[1],A.snooks[1]);
+
+  h+='<div class="sgrp">ZEIT</div>';
+  h+=sNur("Stöße",A.shots[0],A.shots[1]);
+  h+=sNur("Stoßzeit im Schnitt",sekTxt(A.shotMs[0],A.shots[0]),
+                                sekTxt(A.shotMs[1],A.shots[1]));
+  h+=sAnteil("Tischzeit",A.shotMs[0],A.shotMs[1]);
+
+  h+='<div class="sgrp">FEHLER</div>';
+  h+=sFehler("Fouls",A.fouls[0],A.fouls[1]);
+  h+=sFehler("aus dem Snooker",A.foulsSnk[0],A.foulsSnk[1]);
+  h+=sFehler("bei freier Bahn",A.fouls[0]-A.foulsSnk[0],
+                               A.fouls[1]-A.foulsSnk[1]);
+  h+=sFehler("Foulpunkte abgegeben",A.fpts[0],A.fpts[1]);
+
+  var keys=["nix","weiss","falsch","drin","weg","sonst"],i,k,a,b,erst=true;
+  for(i=0;i<keys.length;i++){
+    k=RTXT[keys[i]]; a=A.freason[0][k]||0; b=A.freason[1][k]||0;
+    if(a||b){
+      if(erst){h+='<div class="sgrp">FOULGRÜNDE</div>';erst=false;}
+      h+=sFehler(k,a,b);
+    }
+  }
+
+  h+='<div class="snote">Pot-Quote = gelochte Bälle geteilt durch '+
+     "gelocht plus nicht gelocht. Fouls zählen nicht als Versuch.<br>"+
+     "Zweiter Ball = nach einem Pot fällt auch der nächste Ball "+
+     "derselben Aufnahme.<br>"+
+     "Oben umschalten: Gesamt oder ein einzelner Frame. "+
+     "· = läuft gerade, ↻ = annulliert (Re-rack); die Stöße zählen "+
+     "trotzdem mit.<br>"+
+     "Spielzeit "+msTxt(S.matchMs)+", davon dieser Frame "+
+     msTxt(S.frameMs)+". Wartezeiten über 5 Minuten zählen als "+
+     "Unterbrechung und laufen nicht mit"+
+     (S.pausenMs>0?" (bisher "+msTxt(S.pausenMs)+")":"")+".</div>";
+  el("statsView").innerHTML=h;
+}
+/* Die Knopfreihe wird bei jedem Zeichnen neu gebaut, deshalb haengt der
+   Klick am Behaelter und nicht am einzelnen Knopf. */
+el("statsView").addEventListener("click",function(e){
+  var t=e.target,w=t?t.getAttribute("data-f"):null;
+  if(w===null)return;
+  statSel=(w==="gesamt")?"gesamt":parseInt(w,10);
+  drawStats();
+},false);
+
+/* ---------- Break-Ansicht ----------
+   Bestenliste: alle Breaks des Matches, je Spieler eine Spalte, das
+   groesste oben. Die Frame-Nummer steht daneben, damit man weiss, wo es
+   passiert ist. Gleichgrosse Breaks: der frueheste zuerst. */
+function breakListe(){
+  var l=frameListe(),r=[[],[]],i,j,ev,e;
+  for(i=0;i<l.length;i++){
+    /* Ein annullierter Frame hat nach Regel 3.16 nicht stattgefunden.
+       Seine Breaks gehoeren deshalb nicht in die Bestenliste. */
+    if(l[i].annulliert)continue;
+    ev=l[i].ereignisse||[];
+    for(j=0;j<ev.length;j++){
+      e=ev[j];
+      /* Ein einzelner gelochter Ball ist noch kein Break - erst ab
+         zwei Baellen hintereinander taucht er in der Liste auf. */
+      if(e.typ==="break"&&e.b&&e.b.length>=2)
+        r[e.sp].push({p:e.p,b:e.b,nr:l[i].nr,lauf:r[e.sp].length});
+    }
+  }
+  for(i=0;i<2;i++)r[i].sort(function(x,y){
+    return y.p-x.p||x.lauf-y.lauf;
+  });
+  return r;
+}
+function brkSpalte(bs){
+  if(!bs.length)return '<div class="brkLeer">Noch kein Break ab 2 Bällen.</div>';
+  var h="",i;
+  for(i=0;i<bs.length;i++)
+    h+='<div class="brk"><span class="bp">'+bs[i].p+"</span>"+
+       '<span class="bf">Frame '+bs[i].nr+"</span>"+
+       '<span class="bb">'+ballHtml(bs[i].b)+"</span></div>";
+  return h;
+}
+function drawBreaks(){
+  var r=breakListe(),
+      h='<div class="sh"><div class="p0">'+esc(NAME[0])+'</div>'+
+        '<div class="p1">'+esc(NAME[1])+"</div></div>";
+  h+='<div class="brkCols"><div class="brkCol">'+brkSpalte(r[0])+"</div>"+
+     '<div class="brkCol">'+brkSpalte(r[1])+"</div></div>";
+  el("brkView").innerHTML=h;
+}
+
+/* ---------- Farbthema ----------
+   Am <body> haengen zwei Dinge: welcher Tab offen ist und welches
+   Farbthema gilt. Beides muss zusammen gesetzt werden, sonst loescht
+   ein Tabwechsel das Thema. */
+var THKEY="snooker_thema", thema="";
+var THFARBE={"":"#cc5500","thema-nacht":"#10141a",
+             "thema-tuch":"#5a3a1e","thema-signal":"#16202b"};
+
+function bodyKlasse(){
+  var t=(tab==="match"?"":tab);
+  document.body.className=(t?t+" ":"")+thema;
+}
+/* Die Farbe der Systemleiste oben mitfuehren. Geht nur ueber JS. */
+function themeColor(){
+  var m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.setAttribute("content",THFARBE[thema]||THFARBE[""]);
+}
+var FWK={"":"fw-jetzt","thema-nacht":"fw-nacht",
+         "thema-tuch":"fw-tuch","thema-signal":"fw-signal"};
+function farbwahlMalen(){
+  var b=el("farbwahl").getElementsByTagName("button"),i,t;
+  for(i=0;i<b.length;i++){
+    t=b[i].getAttribute("data-thema")||"";
+    b[i].className=(FWK[t]||"")+(t===thema?" an":"");
+  }
+}
+function themaSetzen(t,merken){
+  thema=t||"";
+  bodyKlasse(); themeColor(); farbwahlMalen();
+  if(merken&&LSOK){
+    try{window.localStorage.setItem(THKEY,thema);}catch(e){}
+  }
+}
+function themaLesen(){
+  if(!LSOK)return "";
+  try{return window.localStorage.getItem(THKEY)||"";}catch(e){return "";}
+}
+el("farbwahl").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b)return;
+  themaSetzen(b.getAttribute("data-thema"),true);
+},false);
+
+/* ---------- Tabs ---------- */
+var tab="match";
+function setTab(t){
+  tab=t;
+  bodyKlasse();
+  el("tabMatch").className="tab"+(t==="match"?" on":"");
+  el("tabStats").className="tab"+(t==="stats"?" on":"");
+  el("tabBreaks").className="tab"+(t==="breaks"?" on":"");
+  if(t==="stats")drawStats();
+  if(t==="breaks")drawBreaks();
+}
+el("tabMatch").addEventListener("click",function(){setTab("match");},false);
+el("tabStats").addEventListener("click",function(){setTab("stats");},false);
+
+el("tabBreaks").addEventListener("click",function(){setTab("breaks");},false);
+
+/* Wird die Seite geschlossen, muss ein noch offener Schreibvorgang raus. */
+if(window.addEventListener){
+  window.addEventListener("pagehide",autoSaveJetzt,false);
+  window.addEventListener("beforeunload",autoSaveJetzt,false);
+}
+
+themaSetzen(themaLesen(),false);
+
+/* Der Foul-Grund "Kugel gefallen" heisst seit dem 02.09.2026
+   "Falsche Kugel gefallen". Der Text ist zugleich der Schluessel in der
+   Statistik, deshalb bekommen die schon gespeicherten Daten hier einmalig
+   den neuen Namen. Ohne das faellt der alte Bestand aus der Auswertung. */
+function grundNamenNachziehen(){
+  if(!LSOK)return;
+  var MERKER="snooker_umbenannt_kugel";
+  try{ if(window.localStorage.getItem(MERKER))return; }catch(e){return;}
+  var schluessel=["snooker_matches","snooker_laufend","snooker_ligen"],i,roh,neu;
+  for(i=0;i<schluessel.length;i++){
+    try{
+      roh=window.localStorage.getItem(schluessel[i]);
+      if(!roh)continue;
+      neu=roh.split('"Kugel gefallen"').join('"Falsche Kugel gefallen"');
+      if(neu!==roh)window.localStorage.setItem(schluessel[i],neu);
+    }catch(e){}
+  }
+  try{ window.localStorage.setItem(MERKER,"1"); }catch(e){}
+}
+grundNamenNachziehen();
+
+S=fresh(0);
+draw();
+setInterval(uhr,1000);
+homeAuf();
+})();
+</script>
+
+<script>
+/* App auf dem Tablet ablegen, damit sie ohne Internet startet.
+   Faellt still aus, wenn der Browser das nicht kann oder die Seite
+   ueber file:// geoeffnet wurde. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
