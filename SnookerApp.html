@@ -934,9 +934,9 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 <div class="qMid">
 
 <div class="names">
-  <div class="nm act" id="n0">Ich</div>
+  <div class="nm act" id="n0">Spieler 1</div>
   <div class="fr" id="fr">0&ndash;0</div>
-  <div class="nm" id="n1">Gegner</div>
+  <div class="nm" id="n1">Spieler 2</div>
 </div>
 
 <div class="pts">
@@ -967,8 +967,8 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 <div class="chc" id="rspBar">
   <div class="chcTxt">Gleichstand – Schwarz liegt neu auf. Wer stößt an?</div>
   <div class="chcRow">
-    <button id="rsp0">Ich</button>
-    <button id="rsp1">Gegner</button>
+    <button id="rsp0">Spieler 1</button>
+    <button id="rsp1">Spieler 2</button>
   </div>
 </div>
 
@@ -1049,26 +1049,26 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   <h2>Korrektur</h2>
   <h3>PUNKTE</h3>
   <div class="step">
-    <div class="lbl" id="fixN0">Ich</div>
+    <div class="lbl" id="fixN0">Spieler 1</div>
     <button data-f="s0" data-d="-1">&minus;</button>
     <div class="val" id="fixS0">0</div>
     <button data-f="s0" data-d="1">+</button>
   </div>
   <div class="step">
-    <div class="lbl" id="fixN1">Gegner</div>
+    <div class="lbl" id="fixN1">Spieler 2</div>
     <button data-f="s1" data-d="-1">&minus;</button>
     <div class="val" id="fixS1">0</div>
     <button data-f="s1" data-d="1">+</button>
   </div>
   <h3>FRAMES</h3>
   <div class="step">
-    <div class="lbl" id="fixF0">Ich</div>
+    <div class="lbl" id="fixF0">Spieler 1</div>
     <button data-f="f0" data-d="-1">&minus;</button>
     <div class="val" id="fixFr0">0</div>
     <button data-f="f0" data-d="1">+</button>
   </div>
   <div class="step">
-    <div class="lbl" id="fixF1">Gegner</div>
+    <div class="lbl" id="fixF1">Spieler 2</div>
     <button data-f="f1" data-d="-1">&minus;</button>
     <div class="val" id="fixFr1">0</div>
     <button data-f="f1" data-d="1">+</button>
@@ -1082,8 +1082,8 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   </div>
   <h3>WER IST DRAN</h3>
   <div class="row" id="fixCur">
-    <button data-n="0" class="on">Ich</button>
-    <button data-n="1">Gegner</button>
+    <button data-n="0" class="on" id="fixCur0">Spieler 1</button>
+    <button data-n="1" id="fixCur1">Spieler 2</button>
   </div>
   <h3>WORAUF WIRD GESPIELT</h3>
   <div class="row" id="fixPhase">
@@ -1098,9 +1098,9 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 <div class="ov" id="ovNames"><div class="card">
   <h2>Namen</h2>
   <h3>SPIELER 1</h3>
-  <input id="in0" type="text" autocomplete="off" value="Ich">
+  <input id="in0" type="text" autocomplete="off" value="Spieler 1">
   <h3>SPIELER 2</h3>
-  <input id="in1" type="text" autocomplete="off" value="Gegner">
+  <input id="in1" type="text" autocomplete="off" value="Spieler 2">
   <button class="ok" id="nOk">Übernehmen</button>
   <button class="cancel" id="nCancel">Abbrechen</button>
 </div></div>
@@ -1169,7 +1169,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 (function(){
 "use strict";
 var BALL=["","Rot","Gelb","Grün","Braun","Blau","Pink","Schwarz"];
-var NAME=["Ich","Gegner"];
+var NAME=["Spieler 1","Spieler 2"];
 
 var S, redsTotal=15, hist=[], comm=[], worst=0;
 /* Die fertigen Frames dieses Matches. Steht bewusst neben S und nicht
@@ -2229,6 +2229,9 @@ function askOpen(titel,koerper,l1,f1,l2,f2,l3,f3){
   if(l3){el("ask3").style.display="";el("ask3").textContent=l3;askFn3=f3;}
   else{el("ask3").style.display="none";askFn3=null;}
   el("askC").style.display="";
+  /* Jeder Dialog faengt mit "Abbrechen" an. Wer etwas anderes will,
+     setzt den Text direkt nach askOpen - siehe Spielende. */
+  el("askC").textContent="Abbrechen";
   el("ovAsk").className="ov on";
 }
 /* Für Fragen, die beantwortet werden müssen. */
@@ -2966,6 +2969,22 @@ el("mRerack").addEventListener("click",function(){
     "Ja, neu beginnen",rerack);
 },false);
 
+/* Setzt das Brett auf den Zustand wie beim ersten Start zurueck:
+   neutrale Namen, 0:0, keine Frame- und Spielhistorie. Wird nach jedem
+   Ende eines Matches gerufen - egal ob gespeichert, exportiert oder
+   verworfen. Ohne das steht hinter der Startseite noch das alte Spiel.
+   redsTotal bleibt stehen: die naechste Runde setzt es ohnehin aus dem
+   Startdialog neu, und so bleibt die zuletzt gewaehlte Zahl sichtbar. */
+function brettLeeren(){
+  NAME[0]="Spieler 1"; NAME[1]="Spieler 2";
+  aktuelleLiga=null;
+  matchId=null; warErsatz=false;
+  sichern=false;
+  S=fresh(0);
+  hist=[]; comm=[]; verlauf=[]; commFrisch();
+  draw();
+}
+
 function fertigMelden(txt){
   askOpen("Gespeichert",'<div class="askInfo">'+txt+"</div>",
     "Zur Startseite",function(){aktuelleLiga=null;homeAuf();});
@@ -2981,7 +3000,7 @@ function endeSpeicher(){
         esc(aktuelleLiga.name)+"."
       : "<br>Die Meisterschaft konnte nicht aktualisiert werden.";
   }
-  sichern=false; laufendWeg();
+  sichern=false; laufendWeg(); brettLeeren();
   fertigMelden((warErsatz
     ? "Das Match wurde aktualisiert. Im Tablet "+
       (n===1?"liegt 1 Match.":"liegen "+n+" Matches.")
@@ -2996,10 +3015,21 @@ function endeDatei(){
       "Zurück zum Spiel",null);
     return;
   }
-  sichern=false; laufendWeg();
+  sichern=false; laufendWeg(); brettLeeren();
   fertigMelden("Datei "+f+" wurde heruntergeladen.");
 }
 
+/* Das Match wegwerfen. Zweiter Schritt, weil danach nichts mehr da ist. */
+function endeVerwerfenFragen(){
+  askOpen("Wirklich verwerfen?",
+    '<div class="askInfo warn">Alle Daten dieses Matches gehen verloren: '+
+    "Frames, Punkte, Breaks, Fouls und Zeiten. Das lässt sich nicht "+
+    "rückgängig machen.</div>",
+    "Ja, alles verwerfen",function(){
+      sichern=false; laufendWeg(); brettLeeren(); homeAuf();
+    });
+  el("askC").textContent="Doch nicht";
+}
 el("mEnd").addEventListener("click",function(){
   el("ovMenu").className="ov";
   var info=LSOK
@@ -3007,12 +3037,18 @@ el("mEnd").addEventListener("click",function(){
       "Alternativ als Datei.</div>"
     : '<div class="askInfo warn">Dieser Browser speichert nicht im Gerät. '+
       "Es geht nur als Datei.</div>";
+  /* Vier Wege: sichern, wegwerfen, exportieren, oder zurueck ins Spiel.
+     Kann der Browser nicht speichern, faellt der erste Weg weg. */
   if(LSOK)
     askOpen("Spielende",sumHtml()+info,
       "Speichern und beenden",endeSpeicher,
-      "Als Datei sichern",endeDatei);
+      "Nicht speichern",endeVerwerfenFragen,
+      "Als Datei exportieren",endeDatei);
   else
-    askOpen("Spielende",sumHtml()+info,"Als Datei sichern",endeDatei);
+    askOpen("Spielende",sumHtml()+info,
+      "Als Datei exportieren",endeDatei,
+      "Nicht speichern",endeVerwerfenFragen);
+  el("askC").textContent="Zurück zum Spiel";
 },false);
 /* Ist überhaupt schon etwas passiert, das verloren gehen könnte? */
 function etwasPassiert(x){
@@ -3091,6 +3127,7 @@ function drawFix(){
   el("fixReds").textContent=fix.reds;
   el("fixN0").textContent=NAME[0]; el("fixN1").textContent=NAME[1];
   el("fixF0").textContent=NAME[0]; el("fixF1").textContent=NAME[1];
+  el("fixCur0").textContent=NAME[0]; el("fixCur1").textContent=NAME[1];
 }
 el("mFix").addEventListener("click",function(){
   el("ovMenu").className="ov";
