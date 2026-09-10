@@ -6,7 +6,7 @@
   "start_url": "SnookerApp.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#1a3d2e",
   "theme_color": "#cc5500",
   "icons": [

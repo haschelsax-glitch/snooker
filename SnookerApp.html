@@ -716,6 +716,187 @@ body .ok.k-foul{background:linear-gradient(#ffd6d6,#f2a0a0);
   border:1px solid #c07070;color:#222}
 /* Gesperrt: blasser, aber noch klar als der rote Foul-Knopf erkennbar. */
 body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
+
+/* ==================================================================
+   QUERFORMAT · "Beide Daumen"
+   ------------------------------------------------------------------
+   Greift ab 900 px Breite im Querformat. Quer gehaltene Handys landen
+   weiter bei den drei Hoehenstufen darueber.
+
+   Wozu die Huellen im Markup gut sind:
+     .qLeft   Bedienung links  - die vier Schalter, dann Safe /
+              Nicht gelocht / Foul unter dem linken Daumen
+     .qMid    Anzeige in der Mitte - Namen, Punkte, Protokoll,
+              Statuszeilen, Stats und Breaks
+     .qRight  Bedienung rechts - die sieben Baelle unter dem
+              rechten Daumen
+   Hochkant liegen die drei untereinander, die Mitte zuerst.
+
+   Drei Dinge sind quer anders als hochkant:
+     - "Zurueck" steht oben in der Kopfleiste (hochkant auch),
+       die Ballspalte gehoert ganz den Baellen
+     - die Reaktionszeit faellt weg; auf ihrem Platz steht die
+       Vorsprung-Zeile, und #st4 unten entfaellt dafuer
+     - die untere Reiterleiste ist so hoch wie die Kopfleiste
+
+   Preis hochkant: die zehn Knoepfe stehen jetzt in drei Reihen
+   (Safe/Nicht gelocht/Foul, 1-4, 5-7) statt in zwei. Rund 90 px,
+   die dem Protokoll fehlen. Auf dem Tablet ist der Platz da.
+   ================================================================== */
+
+/* --- Hochkant: untereinander wie bisher. Die Mitte zuerst, dann die
+   beiden Bediengruppen. --- */
+.qWrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.qMid{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;order:1}
+.qLeft{flex:0 0 auto;display:flex;flex-direction:column;order:2}
+.qRight{flex:0 0 auto;display:flex;flex-direction:column;order:3}
+.kopfInfo{display:none}
+.padL{grid-template-columns:repeat(3,1fr);padding:5px 5px 0}
+.padR{grid-template-columns:repeat(4,1fr)}
+/* Auf niedrigen Schirmen (Handy) stehen die sieben Baelle in einer Reihe.
+   Sonst kostet die Trennung in zwei Tastenfelder hier eine dritte
+   Knopfreihe und das Protokoll faellt auf wenige Pixel zusammen. So
+   bleibt es bei zwei Reihen wie frueher: Safe/Nicht gelocht/Foul oben,
+   die Baelle darunter.
+   Die Reihenfolge ist Absicht: diese Regel sticht die Grundregel
+   darueber, und der Querformat-Block darunter sticht sie wieder -
+   quer stehen die Baelle zweispaltig in der Seitenspalte. */
+@media (max-height:720px){
+  .padR{grid-template-columns:repeat(7,1fr)}
+}
+
+@media (orientation:landscape) and (min-width:900px){
+
+  /* --- Der Rahmen: schmale Kopfleiste, darunter drei Spalten.
+     Die beiden Aussenspalten sind Bedienung, die Mitte ist Anzeige. --- */
+  .qWrap{flex-direction:row}
+  .qLeft{flex:0 0 244px;min-height:0;background:#cdf06a;padding:7px;gap:7px;order:1}
+  .qMid{flex:1 1 auto;min-width:0;order:2}
+  .qRight{flex:0 0 252px;min-height:0;background:#cdf06a;padding:7px;gap:7px;order:3}
+  /* Die beiden Bedienspalten sind der Untergrund des Tastenfelds und
+     nehmen deshalb dessen Farbe - eine Zeile je Thema, wie ueberall
+     sonst im Programm auch. */
+  body.thema-nacht .qLeft,body.thema-nacht .qRight{background:#262c35}
+  body.thema-tuch .qLeft,body.thema-tuch .qRight{background:#14573a}
+  body.thema-signal .qLeft,body.thema-signal .qRight{background:#c4ced8}
+
+  /* Kopfleiste: "Menue" ganz links, "Zurueck" ganz rechts - beide
+     genau dort, wo die Daumen sowieso liegen. Die Reaktionszeit
+     dazwischen faellt quer weg. */
+  .top{height:56px;padding:4px 8px}
+  .tbtn{height:48px;width:130px;font-size:20px}
+  .lat{display:none}
+  /* Fassung "Vorsprung oben": der freie Platz in der Kopfleiste nimmt
+     die Zeile #st4 auf, und #st4 unten faellt weg. Das gibt der Mitte
+     32 px zurueck, die das Protokoll bekommt.
+     Fett und 20 px, nicht duenner: auf dem orangen Grund der Standard-
+     Farben hebt sich der Text sonst zu schwach ab (4,3 zu 1). Fett ab
+     19 px zaehlt als grosse Schrift, dafuer reichen 3 zu 1. */
+    .kopfInfo{display:block;flex:1 1 auto;min-width:0;
+        font-size:20px;font-weight:700;line-height:48px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .st4{display:none}
+
+  /* --- Mitte: Namen, Punkte, Protokoll, Statuszeilen, Reiter --- */
+  .names{height:54px}
+  .nm{font-size:27px;line-height:54px}
+  .fr{font-size:25px;padding:0 20px}
+  .ptNum{font-size:66px}
+  .ptBox{padding:6px 0 4px}
+  .snk{font-size:16px}
+  .comm{font-size:19px;padding:6px 14px 10px}
+  .comm .frHd{font-size:18px;padding:9px 8px}
+  .st1{min-height:38px;max-height:76px;font-size:21px}
+  .st2,.st3{height:38px;line-height:38px;font-size:21px}
+  .boff button{padding:15px;font-size:21px}
+  .chcRow button{padding:15px 6px;font-size:18px}
+  .chcTxt{font-size:16px}
+
+  /* --- linke Spalte: oben die vier Schalter zu zweit nebeneinander,
+     darunter die drei Textknoepfe unter dem linken Daumen --- */
+  .tog{flex:0 0 auto;flex-wrap:wrap;background:none;padding:0;gap:7px}
+  .tg{flex:1 1 44%;padding:16px 4px;font-size:16px;min-height:56px}
+
+  .padL{grid-template-columns:1fr;gap:7px;padding:0;background:none;
+        flex:1 1 auto;min-height:0}
+  .padL button{height:auto;min-height:56px;font-size:25px;line-height:1.15}
+
+  /* --- rechte Spalte: die Baelle unter dem rechten Daumen.
+     Rot steht ueber die ganze Breite, es wird am oeftesten getippt.
+     Die Spalte gehoert jetzt ganz den Baellen; die 75 px, die der
+     zweite Zurueck-Knopf gekostet hat, gehen in die Knopfhoehe. --- */
+  .padR{grid-template-columns:1fr 1fr;
+        grid-template-rows:1.25fr 1fr 1fr 1fr;gap:7px;padding:0;background:none;
+        flex:1 1 auto;min-height:0}
+  .padR button{height:auto;min-height:56px}
+  .padR button[data-b="1"]{grid-column:1 / span 2}
+  .padR .ball i{width:88px;height:88px;font-size:46px}
+  .padR button[data-b="1"] i{width:112px;height:112px;font-size:56px}
+
+  /* --- untere Leiste: genauso hoch wie die Kopfleiste oben (56 px).
+     Der Text sitzt darin mittig, nicht mit Polstern ausgerichtet -
+     sonst waechst die Zeile mit der Schriftgroesse mit. --- */
+  .tabs{height:56px}
+  .tab{display:flex;align-items:center;justify-content:center;
+        padding:0 6px;font-size:24px}
+
+  /* --- Stats und Breaks: beide Bedienspalten weg, die Mitte bekommt
+     die volle Breite und zwei Textspalten --- */
+  body.stats .qLeft,body.stats .qRight,
+  body.breaks .qLeft,body.breaks .qRight{display:none}
+  body.stats #statsView{column-count:2;column-gap:30px}
+  #statsView .srow,#statsView .sbar,#statsView .sgrp,
+  #statsView .sub,#statsView .srow.plain{break-inside:avoid}
+  /* Namensbalken, Frame-Wahl, Kopfzeile und Fussnote gehen ueber
+     beide Textspalten - sie gehoeren zu allem darunter. */
+  #statsView .sh,#statsView .fsel,#statsView .fhd,
+  #statsView .snote{column-span:all}
+  #statsView .sgrp:first-child{margin-top:0}
+  .srow .sv{font-size:17px}
+  .srow .sl{font-size:15px;min-width:150px}
+  #statsView .sgrp{margin:10px 0 3px}
+  #statsView .sbar{margin:3px 0 7px}
+  #statsView .snote{margin-top:10px;font-size:13px}
+  /* Die Frame-Knoepfe tragen oft nur eine Ziffer und werden dann zu
+     schmal zum Treffen. 44 px in beide Richtungen. */
+  .fsel .fs{padding:13px 14px;font-size:16px;min-width:44px;min-height:44px}
+  .sh div{font-size:17px;padding:6px 4px}
+  .fhd{font-size:15px}
+  .brk .bp{font-size:24px}
+
+  /* --- Dialoge wie in Variante A --- */
+  .ov{padding:16px 0}
+  .card{max-width:880px;margin:0 auto;width:100%}
+  /* Menue und Startseite sind lange Knopfsaeulen. Bei 800 px Hoehe
+     muessten sie gescrollt werden - zu dritt nebeneinander passen
+     sie auf einen Blick. */
+  #ovMenu .card,#ovHome .card{max-width:1000px}
+  #ovMenu .card .ok,#ovHome .card .ok{width:calc(33.333% - 6px);
+       display:inline-block;vertical-align:top;margin:5px 2px 0;
+       padding:12px 8px}
+  #ovMenu .card .ok.gross,#ovHome .card .ok.gross{width:calc(66.666% - 3px)}
+  #ovMenu .card .cancel,#ovHome .card .cancel{width:100%}
+  .balls button{flex:1 1 18%;min-height:44px}
+}
+
+/* --- Was das kostet, hochkant ---------------------------------
+   Frueher standen die zehn Knoepfe in einem Fuenferraster:
+     Zeile 1  Safe · Nicht gelocht · 1 · 2 · 3
+     Zeile 2  Foul · 4 · 5 · 6 · 7
+   Jetzt sind es zwei getrennte Felder:
+     Zeile 1  Safe · Nicht gelocht · Foul
+     Zeile 2  1 · 2 · 3 · 4
+     Zeile 3  5 · 6 · 7
+   Also eine Reihe mehr, rund 90 px. Auf dem Tablet ist die da
+   (das Protokoll ist heute 667 px hoch), auf einem Handy muessen
+   die drei Hoehenstufen nachgezogen werden.
+
+   An diesem Preis hat sich nichts geaendert. Die drei Aenderungen
+   (Zurueck nach oben, Reaktionszeit weg, hohe Fussleiste) stehen
+   alle in der Querformat-Klammer und ruehren das Hochformat nicht
+   an. Der zweite Zurueck-Knopf ist sogar ganz weg - hochkant war er
+   ohnehin ausgeblendet, jetzt fehlt er ueberall. */
+
 </style>
 </head>
 <body>
@@ -723,8 +904,34 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 <div class="top">
   <button class="tbtn" id="menu">Menü</button>
   <div class="lat" id="lat">Reaktion<br><b>&ndash;</b></div>
+  <!-- Nimmt quer den Platz der Reaktionszeit ein und zeigt denselben
+       Text wie #st4. Traegt .lat mit, damit die vier Farbthemen ohne
+       neue Regeln greifen. Hochkant ausgeblendet. -->
+  <div class="lat kopfInfo" id="topInfo"></div>
   <button class="tbtn" id="undo" disabled>Zurück</button>
 </div>
+
+<!-- Drei Spalten. Hochkant liegen sie untereinander (qMid zuerst, dann
+     die beiden Bediengruppen), quer nebeneinander: Bedienung aussen
+     unter beiden Daumen, Anzeige in der Mitte. Siehe Querformat-Block
+     ganz unten im CSS. -->
+<div class="qWrap">
+
+<div class="qLeft">
+<div class="tog">
+  <button class="tg" id="tLong">LONG</button>
+  <button class="tg" id="tFluke">FLUKE</button>
+  <button class="tg" id="tSnook">SNOOKER</button>
+  <button class="tg" id="tFree">FREE BALL</button>
+</div>
+<div class="pad padL" id="pad">
+  <button class="k-safe" data-a="safe">Safe</button>
+  <button class="k-miss" data-a="miss">Nicht gelocht</button>
+  <button class="k-foul" data-a="foul">Foul</button>
+</div>
+</div><!-- /qLeft -->
+
+<div class="qMid">
 
 <div class="names">
   <div class="nm act" id="n0">Ich</div>
@@ -768,28 +975,24 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 <div class="boff" id="boffBar"><button id="boff">ANSTOSS</button></div>
 <div class="boff" id="nfBar"><button id="nextFrame">NÄCHSTER FRAME</button></div>
 
-<div class="tog">
-  <button class="tg" id="tLong">LONG</button>
-  <button class="tg" id="tFluke">FLUKE</button>
-  <button class="tg" id="tSnook">SNOOKER</button>
-  <button class="tg" id="tFree">FREE BALL</button>
-</div>
+<div id="statsView"></div>
+<div id="brkView"></div>
 
-<div class="pad" id="pad">
-  <button class="k-safe" data-a="safe">Safe</button>
-  <button class="k-miss" data-a="miss">Nicht gelocht</button>
+</div><!-- /qMid -->
+
+<div class="qRight">
+<div class="pad padR" id="pad2">
   <button class="ball" data-b="1"><i class="c-rot">1</i></button>
   <button class="ball" data-b="2"><i class="c-gelb">2</i></button>
   <button class="ball" data-b="3"><i class="c-gruen">3</i></button>
-  <button class="k-foul" data-a="foul">Foul</button>
   <button class="ball" data-b="4"><i class="c-braun">4</i></button>
   <button class="ball" data-b="5"><i class="c-blau">5</i></button>
   <button class="ball" data-b="6"><i class="c-pink">6</i></button>
   <button class="ball" data-b="7"><i class="c-schwarz">7</i></button>
 </div>
+</div><!-- /qRight -->
 
-<div id="statsView"></div>
-<div id="brkView"></div>
+</div><!-- /qWrap -->
 
 <div class="tabs">
   <div class="tab on" id="tabMatch">Match</div>
@@ -1460,13 +1663,17 @@ function draw(){
   el("st3").textContent=s3;
 
   var d=S.sc[S.cur]-S.sc[1-S.cur],ot=onTable();
-  el("st4").textContent=S.reds+" Rote, "+
-                        (d>0?d+" Vorsprung":d<0?(-d)+" zurück":"Gleichstand")+
-                        ", "+ot+" auf dem Tisch.";
+  var s4=S.reds+" Rote, "+
+         (d>0?d+" Vorsprung":d<0?(-d)+" zurück":"Gleichstand")+
+         ", "+ot+" auf dem Tisch.";
+  el("st4").textContent=s4;
+  el("topInfo").textContent=s4;
 
   if(!S.freeAllowed)freeOn=false;
 
-  var b=el("pad").getElementsByTagName("button"),j,v,ok;
+  /* Beide Tastenfelder auf einmal: quer stehen sie in zwei Spalten,
+     hochkant untereinander. */
+  var b=document.querySelectorAll(".pad button"),j,v,ok;
   for(j=0;j<b.length;j++){
     v=b[j].getAttribute("data-b");
     if(!v){b[j].disabled=(S.phase==="done")||wait;continue;}
@@ -1679,7 +1886,8 @@ function measure(t0){
   });});
 }
 
-el("pad").addEventListener("click",function(e){
+/* Ein Handler fuer beide Tastenfelder. */
+function padTap(e){
   var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
   if(!b||b.disabled)return;
   var t0=now(),v=b.getAttribute("data-b");
@@ -1690,7 +1898,9 @@ el("pad").addEventListener("click",function(e){
     else{endVisit(a);draw();}
   }
   measure(t0);
-},false);
+}
+el("pad").addEventListener("click",padTap,false);
+el("pad2").addEventListener("click",padTap,false);
 
 el("chOpp").addEventListener("click",function(){
   if(!S.pending)return;
