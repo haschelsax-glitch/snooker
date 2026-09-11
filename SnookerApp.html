@@ -1366,8 +1366,7 @@ function commZeichnen(){
     h="";
     for(i=0;i<verlauf.length;i++){
       f=verlauf[i];
-      h+=frKopf("Frame "+f.nr+(f.annulliert?" (Re-rack, zählt nicht)":""),
-                i,offenFrame===i);
+      h+=frKopf("Frame "+f.nr,i,offenFrame===i);
       if(offenFrame===i){
         ev=f.ereignisse||[];
         for(j=0;j<ev.length;j++)h+=commHtml(ev[j]);
@@ -1585,14 +1584,13 @@ function snookerNachziehen(m){
   return true;
 }
 
-/* Einen fertigen Frame ablegen. w ist der Gewinner oder null, wenn der
-   Frame annulliert wurde (Re-rack). Die Stoesse waren trotzdem da,
-   deshalb bleibt er in der Statistik stehen. */
-function frameAblegen(w,annul){
+/* Einen fertigen Frame ablegen. w ist der Gewinner. Ein Re-rack legt
+   nichts ab - der Frame hat nicht stattgefunden, siehe rerack(). */
+function frameAblegen(w){
   verlauf.push({nr:verlauf.length+1,
                 punkte:[S.sc[0],S.sc[1]],
                 gewinner:(w===0||w===1)?w:null,
-                annulliert:!!annul,
+                annulliert:false,
                 anstoss:S.first,
                 dauerMs:S.frameMs,
                 ereignisse:comm.slice(S.frStart||0),
@@ -1623,7 +1621,7 @@ function awardFrame(w,zusatz){
   /* Die Ergebniszeile gehoert noch zum Frame, also erst anhaengen,
      dann den Frame ablegen. */
   say(erg,false);
-  frameAblegen(w,false);
+  frameAblegen(w);
   /* Der Frame ist vorbei: Protokollfeld leeren und mit dem Ergebnis
      neu anfangen. Zurueck geht trotzdem - snap() haelt eine Kopie. */
   comm.length=0;
@@ -1631,28 +1629,36 @@ function awardFrame(w,zusatz){
   S.frStart=comm.length;
 }
 
-/* Das hoechste Break beider Spieler, gerechnet ueber alle Frames, die
-   zaehlen. Annullierte bleiben aussen vor. */
-function hiBrkNeu(){
-  var h=[0,0],i,j,ev,e;
-  for(i=0;i<verlauf.length;i++){
-    if(verlauf[i].annulliert)continue;
-    ev=verlauf[i].ereignisse||[];
-    for(j=0;j<ev.length;j++){
-      e=ev[j];
-      if(e.typ==="break"&&e.p>h[e.sp])h[e.sp]=e.p;
-    }
+/* Das hoechste Break beider Spieler ueber eine Frame-Liste. */
+function hiBrkAus(l){
+  var h=[0,0],i,x;
+  for(i=0;i<l.length;i++){
+    x=hoechstes(l[i].ereignisse||[]);
+    if(x[0]>h[0])h[0]=x[0];
+    if(x[1]>h[1])h[1]=x[1];
   }
   return h;
 }
 
-/* Re-rack: Frame wird annulliert und neu begonnen (Regel 3.16).
-   Der Punktestand faellt weg, derselbe Spieler stoesst wieder an. */
+/* Re-rack (Regel 3.16): der Frame hat nicht stattgefunden. Er wird
+   deshalb ganz weggeworfen - alle Zaehler gehen auf den Stand vor dem
+   Frame zurueck, auch seine Zeit. Er steht in keiner Frame-Liste, keiner
+   Statistik und nicht bei den Breaks. Nur eine Hinweiszeile im neuen
+   Frame sagt, dass neu begonnen wurde. Derselbe Spieler stoesst wieder
+   an. Zurueck geht trotzdem - snap() haelt den alten Stand. */
 function rerack(){
   snap(); taktAus();
-  /* Erst ablegen, dann zuruecksetzen - sonst waeren Punkte und Dauer
-     des annullierten Frames schon weg. */
-  frameAblegen(null,true);
+  var vor=verlauf.length?verlauf[verlauf.length-1].summe:null,
+      jetzt=summeJetzt(),k;
+  for(k in jetzt)if(jetzt.hasOwnProperty(k)&&k!=="freason"){
+    if(!vor)S[k]=[0,0];
+    /* Aeltere Frames kennen manchen Zaehler nicht - der bleibt stehen. */
+    else if(vor[k])S[k]=paar(vor[k]);
+  }
+  S.freason=vor?(vor.freason?[kopie(vor.freason[0]),kopie(vor.freason[1])]
+                            :S.freason):[{},{}];
+  S.hiBrk=hiBrkAus(verlauf);
+  S.matchMs=Math.max(0,S.matchMs-S.frameMs);
   S.frameMs=0;
   S.sc=[0,0]; S.brk=0; S.cur=S.first; S.phase="red"; S.reds=redsTotal;
   S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
@@ -1660,13 +1666,76 @@ function rerack(){
   snookOn=false; longOn=false; freeOn=false; flukeOn=false;
   S.safeOffen=null;
   comm.length=0;
-  /* Der annullierte Frame zaehlt nicht - also darf auch sein hoechstes
-     Break nicht stehen bleiben. Neu aus den Frames rechnen, die zaehlen.
-     Ein Hoechstwert laesst sich nicht einfach abziehen. */
-  S.hiBrk=hiBrkNeu();
-  say("— Re-rack. Punkte gelöscht, "+redsTotal+" Rote. "+NAME[S.first]+
+  S.frStart=0;
+  say("— Re-rack. Frame neu begonnen, "+redsTotal+" Rote. "+NAME[S.first]+
       " stößt wieder an. —",false);
-  S.frStart=comm.length;
+}
+
+/* Matches von vor dem 11.09.2026 tragen einen Re-rack-Frame noch als
+   "annulliert" im Verlauf, und seine Stoesse stecken in allen Zaehlern.
+   Hier fliegt er einmal raus: Was der Frame gebracht hat, wird von allen
+   spaeteren Zaehlerstaenden abgezogen, dann faellt er weg und die Nummern
+   ruecken nach. l wird dabei veraendert. Gibt die Dauer der entfernten
+   Frames zurueck, oder -1, wenn es keinen gab. */
+function rerackRaus(l){
+  var ms=-1,i,j,f,d,k,p,n,s;
+  for(i=0;i<l.length;i++){
+    f=l[i];
+    if(!f.annulliert)continue;
+    d=summeDif(f.summe||{},i>0?l[i-1].summe:null);
+    for(j=i+1;j<l.length;j++){
+      s=l[j].summe; if(!s)continue;
+      for(k in d)if(d.hasOwnProperty(k)&&k!=="freason"&&s[k]){
+        s[k][0]-=d[k][0]; s[k][1]-=d[k][1];
+      }
+      if(s.freason)for(p=0;p<2;p++)for(n in d.freason[p])
+        if(d.freason[p].hasOwnProperty(n)&&s.freason[p]){
+          s.freason[p][n]=(s.freason[p][n]||0)-d.freason[p][n];
+          if(s.freason[p][n]<=0)delete s.freason[p][n];
+        }
+    }
+    ms=Math.max(ms,0)+(f.dauerMs||0);
+    l.splice(i,1); i--;
+  }
+  if(ms>=0)for(i=0;i<l.length;i++)l[i].nr=i+1;
+  return ms;
+}
+/* Was ein Frame gebracht hat: seine Zaehlerstaende minus die davor. */
+function summeDif(a,b){
+  var d={},k;
+  for(k in a)if(a.hasOwnProperty(k)&&k!=="freason"&&a[k]&&a[k].length===2)
+    d[k]=dif(a,b,k);
+  d.freason=a.freason?difGrund(a.freason,b?b.freason:null):[{},{}];
+  return d;
+}
+/* Ein gespeichertes Match einmal berichtigen. Hinten haengt ein
+   Schein-Frame mit den Endstaenden des Matches, damit sie mit berichtigt
+   werden. */
+function rerackNachziehen(m){
+  if(!m||!m.verlauf)return false;
+  var i,z=m.zeit||{},tot,l,ms,k,st;
+  for(i=0;i<m.verlauf.length;i++)if(m.verlauf[i].annulliert)break;
+  if(i>=m.verlauf.length)return false;
+  tot={pots:m.pots,miss:m.nichtGelocht,safes:m.safes,snooks:m.snooks,
+       snookWon:m.snookWon,snookZuf:m.snookZuf,safesWeg:m.safesWeg,
+       flukes:m.flukes,fouls:m.fouls,foulsSnk:m.foulsSnk,fpts:m.fpts,
+       longTry:m.longTry,longHit:m.longHit,posTry:m.posTry,posHit:m.posHit,
+       shots:z.stoesse,shotMs:z.stossMs,freason:m.freason};
+  for(k in tot)if(tot.hasOwnProperty(k)&&!tot[k])delete tot[k];
+  l=m.verlauf.concat([{summe:tot}]);
+  ms=rerackRaus(l);
+  m.verlauf=l.slice(0,l.length-1);
+  if(typeof z.spielMs==="number")z.spielMs=Math.max(0,z.spielMs-ms);
+  m.hiBrk=hiBrkAus(m.verlauf);
+  st=m.stand&&m.stand.S;
+  if(st){
+    for(k in tot)if(tot.hasOwnProperty(k)&&k!=="freason")st[k]=paar(tot[k]);
+    if(tot.freason)st.freason=[kopie(tot.freason[0]),kopie(tot.freason[1])];
+    if(typeof st.matchMs==="number")st.matchMs=Math.max(0,st.matchMs-ms);
+    st.hiBrk=paar(m.hiBrk);
+    if(m.stand.verlauf)rerackRaus(m.stand.verlauf);
+  }
+  return true;
 }
 
 function nextFrame(){
@@ -2438,7 +2507,7 @@ function protokollAus(l,nm){
   l=l||[];
   for(i=0;i<l.length;i++){
     f=l[i];
-    out.push("— Frame "+f.nr+(f.annulliert?" (Re-rack, zählt nicht)":"")+" —");
+    out.push("— Frame "+f.nr+" —");
     ev=f.ereignisse||[];
     for(j=0;j<ev.length;j++)out.push(commText(ev[j],nm));
   }
@@ -2644,7 +2713,11 @@ function alleMatches(){
     /* Aeltere Matches - auch vom Server geholte oder eingelesene - einmal
        berichtigen und gleich so zurueckschreiben. Der naechste Abgleich
        bringt die berichtigten Zahlen dann auf den Server. */
-    for(i=0;i<a.length;i++)if(snookerNachziehen(a[i]))neu=true;
+    for(i=0;i<a.length;i++){
+      if(snookerNachziehen(a[i]))neu=true;
+      /* Erst danach: der Re-rack-Abzug nimmt auch snookZuf mit. */
+      if(rerackNachziehen(a[i]))neu=true;
+    }
     if(neu)matchesSchreiben(a);
     return a;
   }catch(e){return [];}
@@ -3100,7 +3173,8 @@ el("mRerack").addEventListener("click",function(){
   askOpen("Re-rack",
     '<div class="askInfo">Der Frame wird neu begonnen. Der Punktestand '+
     S.sc[0]+"–"+S.sc[1]+" wird gelöscht. "+NAME[S.first]+
-    " stößt wieder an. Frames bleiben stehen.</div>",
+    " stößt wieder an. Frames bleiben stehen. Der Frame gilt als nicht "+
+    "gespielt und zählt in keiner Statistik.</div>",
     "Ja, neu beginnen",rerack);
 },false);
 
@@ -4333,6 +4407,19 @@ function weiterspielen(r){
              summe:{snooks:S.snooks,snookWon:S.snookWon,foulsSnk:S.foulsSnk}}]));
     S.snookWon=sr.won; S.snookZuf=sr.zuf;
   }
+  /* Und ein Re-rack-Frame aus der Zeit davor fliegt raus, siehe
+     rerackRaus(). Hinten haengen die Zaehler aus S selbst, damit sie mit
+     berichtigt werden. */
+  var rs=summeJetzt(),rk,rl,rms;
+  for(rk in rs)if(rs.hasOwnProperty(rk))rs[rk]=S[rk];
+  rl=verlauf.concat([{summe:rs}]);
+  rms=rerackRaus(rl);
+  if(rms>=0){
+    verlauf=rl.slice(0,rl.length-1);
+    S.matchMs=Math.max(0,S.matchMs-rms);
+    var hv=hiBrkAus(verlauf),hl=hoechstes(comm.slice(S.frStart));
+    S.hiBrk=[Math.max(hv[0],hl[0]),Math.max(hv[1],hl[1])];
+  }
   say("— Match fortgesetzt. —",false);
   el("ovHome").className="ov";
   el("ovStart").className="ov";
@@ -4456,7 +4543,7 @@ function frameWahl(){
   for(i=0;i<l.length;i++){
     f=l[i];
     h+='<button class="fs'+(statSel===i?" on":"")+'" data-f="'+i+'">'+
-       f.nr+(f.annulliert?"↻":"")+(f.unvollstaendig?"·":"")+"</button>";
+       f.nr+(f.unvollstaendig?"·":"")+"</button>";
   }
   return h+"</div>";
 }
@@ -4467,7 +4554,6 @@ function statKopf(A){
     return '<div class="fhd">Ganzes Match · Frames '+S.fr[0]+"–"+S.fr[1]+
            " · "+msTxt(S.matchMs)+"</div>";
   return '<div class="fhd">Frame '+f.nr+
-         (f.annulliert?" (Re-rack, zählt nicht)":"")+
          (f.unvollstaendig?" (läuft)":"")+" · "+f.punkte[0]+"–"+f.punkte[1]+
          (f.gewinner===0||f.gewinner===1?" · "+esc(NAME[f.gewinner])+" gewinnt":"")+
          " · "+msTxt(f.dauerMs)+" · Anstoß "+esc(NAME[f.anstoss])+"</div>";
@@ -4531,8 +4617,8 @@ function drawStats(){
      "Zweiter Ball = nach einem Pot fällt auch der nächste Ball "+
      "derselben Aufnahme.<br>"+
      "Oben umschalten: Gesamt oder ein einzelner Frame. "+
-     "· = läuft gerade, ↻ = annulliert (Re-rack); die Stöße zählen "+
-     "trotzdem mit.<br>"+
+     "· = läuft gerade. Ein Frame mit Re-rack gilt als nicht gespielt "+
+     "und zählt nirgends mit.<br>"+
      "Spielzeit "+msTxt(S.matchMs)+", davon dieser Frame "+
      msTxt(S.frameMs)+". Wartezeiten über 5 Minuten zählen als "+
      "Unterbrechung und laufen nicht mit"+
@@ -4555,9 +4641,6 @@ el("statsView").addEventListener("click",function(e){
 function breakListe(){
   var l=frameListe(),r=[[],[]],i,j,ev,e;
   for(i=0;i<l.length;i++){
-    /* Ein annullierter Frame hat nach Regel 3.16 nicht stattgefunden.
-       Seine Breaks gehoeren deshalb nicht in die Bestenliste. */
-    if(l[i].annulliert)continue;
     ev=l[i].ereignisse||[];
     for(j=0;j<ev.length;j++){
       e=ev[j];

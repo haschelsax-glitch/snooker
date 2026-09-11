@@ -6,7 +6,7 @@
    Der Browser holt sw.js beim naechsten Start mit Netz neu, legt die
    neuen Dateien an und schaltet nach dem naechsten Schliessen um. */
 
-const VERSION = "snooker-v9";
+const VERSION = "snooker-v10";
 
 /* Alles, was die App zum Starten braucht. Relative Pfade, damit es
    egal ist, in welchem Ordner die App liegt. */
