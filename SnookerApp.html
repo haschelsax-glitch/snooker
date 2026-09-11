@@ -2182,10 +2182,10 @@ el("fGroups").addEventListener("click",function(e){
 
 function openFoul(){
   resetFoul();
-  /* Hat der Gegner vorher "Safe + Snooker" getippt, weiss die App die
-     Lage schon. Sie steht dann gleich als beantwortete Zeile da und
-     laesst sich per Antippen aendern. */
-  if(S.snookeredOn)foulPick.lage=1;
+  /* Die Lage ist immer schon vorbelegt: "Gesnookert", wenn der Gegner
+     vorher "Safe + Snooker" getippt hat, sonst "Freie Bahn". Sie steht
+     gleich als beantwortete Zeile da und laesst sich per Antippen aendern. */
+  foulPick.lage=S.snookeredOn?1:0;
   drawFoul();
   el("ovFoul").className="ov on";
 }
