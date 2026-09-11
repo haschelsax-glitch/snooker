@@ -2011,6 +2011,11 @@ function rotText(){
   return foulPick.reds===1?"1 Rote":foulPick.reds+" Rote";
 }
 function anzFallen(){var n=0,i;for(i=2;i<=7;i++)if(foulPick.fallen[i])n++;return n;}
+/* Bei Rot on ist eine gelochte Rote kein Foul. "Falsche Kugel gefallen"
+   braucht dann eine Farbe - Rot geht nur zusaetzlich. */
+function rotAllein(){
+  return foulPick.r==="drin"&&S.phase==="red"&&anzFallen()===0;
+}
 
 /* Welche Kategorien diese Seite braucht, in dieser Reihenfolge.
    Der Grund bestimmt, was danach noch gefragt wird - und wie. */
@@ -2089,7 +2094,7 @@ function foulOptionen(k){
     /* Jede Kugel ist waehlbar, auch eine billige. Sie erhoeht die Strafe
        nicht, haelt aber fest, was wirklich passiert ist.
        Rot zaehlt bei jedem Tippen hoch, denn Rote bleiben aus dem Spiel. */
-    if(S.reds>0)h+=foulKnopf("fallen",1,rotText(),foulPick.reds>0,false,BCLS[1]);
+    if(S.reds>0)h+=foulKnopf("fallen",1,rotText(),foulPick.reds>0,rotAllein(),BCLS[1]);
     for(i=2;i<=7;i++)
       h+=foulKnopf("fallen",i,BALL[i],!!foulPick.fallen[i],false,BCLS[i]);
     /* "Keine" passt nicht zu "Falsche Kugel gefallen". */
@@ -2118,6 +2123,8 @@ function foulAufraeumen(){
   if(foulPick.reds>rotMax())foulPick.reds=rotMax();
   /* Trifft Weiss nichts, faellt auch nichts. */
   if(foulPick.r==="nix"){foulPick.fallen={};foulPick.reds=0;foulPick.fallenSet=false;}
+  /* Wird die letzte Farbe wieder abgewaehlt, geht die Rote mit. */
+  if(rotAllein())foulPick.reds=0;
   /* Bei "Falsche Kugel gefallen" gilt die Frage erst mit einer Kugel
      als beantwortet. */
   if(foulPick.r==="drin"&&anzFallen()===0&&!foulPick.reds)foulPick.fallenSet=false;
