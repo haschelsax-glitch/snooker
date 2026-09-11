@@ -2122,7 +2122,9 @@ function drawFoul(){
   for(i=0;i<=letzte;i++){
     s=st[i]; akt=(i===ai);
     cls="grp"+(akt?" aktiv":" fertig")+(foulSeen[s.k]?"":" neu");
-    if(akt||foulOffen[s.k]||!foulBeantwortet(s.k)){
+    /* Die Lage klappt nie zu: beide Knoepfe bleiben sichtbar, damit man
+       die Vorwahl mit einem Tipp umstellen kann. */
+    if(akt||s.k==="lage"||foulOffen[s.k]||!foulBeantwortet(s.k)){
       h+='<div class="'+cls+'"><h3>'+s.t+'</h3><div class="'+
          foulOptKlasse(s.k)+'">'+foulOptionen(s.k)+'</div></div>';
     }else{
@@ -2183,8 +2185,8 @@ el("fGroups").addEventListener("click",function(e){
 function openFoul(){
   resetFoul();
   /* Die Lage ist immer schon vorbelegt: "Gesnookert", wenn der Gegner
-     vorher "Safe + Snooker" getippt hat, sonst "Freie Bahn". Sie steht
-     gleich als beantwortete Zeile da und laesst sich per Antippen aendern. */
+     vorher "Safe + Snooker" getippt hat, sonst "Freie Bahn". Der andere
+     Knopf bleibt daneben stehen - etwa fuer einen Snooker aus Versehen. */
   foulPick.lage=S.snookeredOn?1:0;
   drawFoul();
   el("ovFoul").className="ov on";
