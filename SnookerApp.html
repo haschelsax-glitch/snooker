@@ -179,6 +179,9 @@ body{display:flex;flex-direction:column;font-size:16px}
 .grp{margin-bottom:2px}
 .grp.neu{animation:fauf .18s ease-out}
 @keyframes fauf{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+/* Die naechste Frage auf der Foul-Seite ruft einmal kurz. */
+.grp h3.ruf{animation:ruf 1.3s ease-in-out}
+@keyframes ruf{0%{font-size:13px}18%,65%{font-size:26px}100%{font-size:13px}}
 .grp.kurz{display:flex;align-items:center;gap:10px;margin:2px 0;opacity:.72}
 .grp.kurz h3{flex:0 1 190px;min-width:0;margin:0;
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -1958,11 +1961,11 @@ var RTXT={nix:"Weiß trifft nichts",weiss:"Weiß gefallen",
           weg:"Kugel vom Tisch",sonst:"Sonstiges"};
 var RE=["nix","weiss","falsch","drin","weg","sonst"];
 
-var foulPick,foulSeen,foulOffen;
+var foulPick,foulSeen,foulOffen,foulRuf;
 function resetFoul(){
   foulPick={lage:null,r:null,on:0,which:0,fallen:{},fallenSet:false,
             reds:0,manual:0};
-  foulSeen={}; foulOffen={};
+  foulSeen={}; foulOffen={}; foulRuf={};
 }
 resetFoul();
 
@@ -2009,15 +2012,21 @@ function rotText(){
 }
 function anzFallen(){var n=0,i;for(i=2;i<=7;i++)if(foulPick.fallen[i])n++;return n;}
 
-/* Welche Kategorien diese Seite braucht, in dieser Reihenfolge. */
+/* Welche Kategorien diese Seite braucht, in dieser Reihenfolge.
+   Der Grund bestimmt, was danach noch gefragt wird - und wie. */
 function foulSchritte(){
-  var l=[];
+  var l=[],r=foulPick.r;
   l.push({k:"lage",t:"LAGE"});
   l.push({k:"r",t:"WAS IST PASSIERT"});
   if(S.phase==="colour")l.push({k:"on",t:"WELCHE FARBE NOMINIERT"});
-  if(foulPick.r==="falsch"||foulPick.r==="weg")l.push({k:"which",t:"WELCHE KUGEL"});
-  l.push({k:"fallen",t:"KUGELN GEFALLEN"});
-  if(foulPick.r==="sonst")l.push({k:"manual",t:"PUNKTE AN GEGNER"});
+  if(r==="falsch")l.push({k:"which",t:"WELCHER BALL"});
+  if(r==="weg")l.push({k:"which",t:"WELCHE KUGEL"});
+  /* Trifft Weiss nichts, kann auch nichts gefallen sein - dann ist nach
+     dem Grund (und bei Farbe on der Farbe) Schluss. */
+  if(r==="drin")l.push({k:"fallen",t:"WELCHE KUGELN"});
+  else if(r==="sonst")l.push({k:"fallen",t:"KUGELN GEFALLEN"});
+  else if(r&&r!=="nix")l.push({k:"fallen",t:"ANDERE KUGELN GEFALLEN"});
+  if(r==="sonst")l.push({k:"manual",t:"PUNKTE AN GEGNER"});
   return l;
 }
 function foulBeantwortet(k){
@@ -2083,7 +2092,9 @@ function foulOptionen(k){
     if(S.reds>0)h+=foulKnopf("fallen",1,rotText(),foulPick.reds>0,false,BCLS[1]);
     for(i=2;i<=7;i++)
       h+=foulKnopf("fallen",i,BALL[i],!!foulPick.fallen[i],false,BCLS[i]);
-    h+=foulKnopf("fallen",0,"Keine",foulPick.fallenSet&&anzFallen()===0&&!foulPick.reds,false,"");
+    /* "Keine" passt nicht zu "Falsche Kugel gefallen". */
+    if(foulPick.r!=="drin")
+      h+=foulKnopf("fallen",0,"Keine",foulPick.fallenSet&&anzFallen()===0&&!foulPick.reds,false,"");
   }else if(k==="manual"){
     /* Bei "Sonstiges": nichts unter der Untergrenze anbieten. */
     var g2=foulFloor();
@@ -2105,6 +2116,11 @@ function foulAufraeumen(){
   var mn=foulRedMin();
   if(foulPick.reds===null||foulPick.reds<mn)foulPick.reds=mn;
   if(foulPick.reds>rotMax())foulPick.reds=rotMax();
+  /* Trifft Weiss nichts, faellt auch nichts. */
+  if(foulPick.r==="nix"){foulPick.fallen={};foulPick.reds=0;foulPick.fallenSet=false;}
+  /* Bei "Falsche Kugel gefallen" gilt die Frage erst mit einer Kugel
+     als beantwortet. */
+  if(foulPick.r==="drin"&&anzFallen()===0&&!foulPick.reds)foulPick.fallenSet=false;
   if(foulPick.r!=="falsch"&&foulPick.r!=="weg")foulPick.which=0;
   if(foulPick.r!=="sonst")foulPick.manual=0;
   if(foulPick.manual&&foulPick.manual<gr)foulPick.manual=gr;
@@ -2118,14 +2134,19 @@ function drawFoul(){
   var st=foulSchritte(),i,ai=-1;
   for(i=0;i<st.length;i++)if(!foulBeantwortet(st[i].k)){ai=i;break;}
   var letzte=(ai<0)?st.length-1:ai;
-  var h="",s,akt,cls;
+  var h="",s,akt,cls,ruf;
   for(i=0;i<=letzte;i++){
     s=st[i]; akt=(i===ai);
     cls="grp"+(akt?" aktiv":" fertig")+(foulSeen[s.k]?"":" neu");
+    /* Die Frage, die jetzt dran ist, meldet sich einmal kurz mit grosser
+       Schrift. Nach der Ueberschrift gemerkt, damit auch eine umbenannte
+       Frage (etwa "Welche Kugeln" statt "Andere Kugeln gefallen") ruft. */
+    ruf=akt&&!foulRuf[s.t];
+    if(ruf)foulRuf[s.t]=true;
     /* Die Lage klappt nie zu: beide Knoepfe bleiben sichtbar, damit man
        die Vorwahl mit einem Tipp umstellen kann. */
     if(akt||s.k==="lage"||foulOffen[s.k]||!foulBeantwortet(s.k)){
-      h+='<div class="'+cls+'"><h3>'+s.t+'</h3><div class="'+
+      h+='<div class="'+cls+'"><h3'+(ruf?' class="ruf"':'')+'>'+s.t+'</h3><div class="'+
          foulOptKlasse(s.k)+'">'+foulOptionen(s.k)+'</div></div>';
     }else{
       h+='<div class="'+cls+' kurz"><h3>'+s.t+'</h3>'+
