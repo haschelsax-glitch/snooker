@@ -215,14 +215,16 @@ body.breaks .boff{display:none!important}
 .fsel .fs.on{background:#000;color:#fff;border-color:#000}
 .fhd{margin:4px 0 2px;font-size:13px;color:#26350a;text-align:center;
   background:#cdf07a;border-radius:8px;padding:7px 5px;line-height:1.4}
-.sgrp{font-size:12px;font-weight:700;letter-spacing:.09em;color:#3a5008;
-  margin:14px 0 3px;border-bottom:1px solid rgba(0,0,0,.2);padding-bottom:2px}
+/* Rubrik-Ueberschrift als farbiges Band, damit die Gruppen sich klar
+   voneinander abheben. */
+.sgrp{font-size:15px;font-weight:700;letter-spacing:.09em;color:#fff;
+  background:#3a5008;border-radius:6px;padding:4px 8px;margin:14px 0 5px}
 .srow{display:flex;align-items:baseline;gap:4px}
 .srow .sv{flex:1 1 0;font-size:16px;font-weight:700;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .srow .sv.r{text-align:right}
 .srow .sv em{font-style:normal;font-weight:400;font-size:12px;opacity:.7}
-.srow .sl{flex:0 0 auto;font-size:13px;color:#26350a;text-align:center;
+.srow .sl{flex:0 0 auto;font-size:13px;font-weight:700;color:#26350a;text-align:center;
   min-width:104px}
 .sbar{height:5px;border-radius:3px;background:#f5a623;margin:3px 0 9px;
   overflow:hidden}
@@ -498,7 +500,7 @@ body.thema-nacht .sh .p1{background:#a3660f}
 body.thema-nacht .fsel .fs{background:#333b45;border:2px solid #5b6773;color:#e6ecf2}
 body.thema-nacht .fsel .fs.on{background:#fff;color:#000;border-color:#fff}
 body.thema-nacht .fhd{color:#c3cdd8;background:#2a313b}
-body.thema-nacht .sgrp{color:#8fbede;border-bottom:1px solid rgba(255,255,255,.22)}
+body.thema-nacht .sgrp{color:#cfe6fa;background:#28405a}
 body.thema-nacht .srow .sl{color:#aab6c2}
 body.thema-nacht .sbar{background:#a3660f}
 body.thema-nacht .sbar i{background:#1e88d6}
@@ -587,7 +589,7 @@ body.thema-tuch .sh .p1{background:#c9a063;color:#241704}
 body.thema-tuch .fsel .fs{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
 body.thema-tuch .fsel .fs.on{background:#14573a;color:#f7f2e2;border-color:#14573a}
 body.thema-tuch .fhd{color:#3a2c10;background:#e3d8bc}
-body.thema-tuch .sgrp{color:#14573a}
+body.thema-tuch .sgrp{color:#fff;background:#14573a}
 body.thema-tuch .srow .sl{color:#4a3a18}
 body.thema-tuch .sbar{background:#c9a063}
 body.thema-tuch .sbar i{background:#14573a}
@@ -668,7 +670,7 @@ body.thema-signal .sh .p1{background:#8a4b00}
 body.thema-signal .fsel .fs{border:2px solid #16202b;color:#16202b}
 body.thema-signal .fsel .fs.on{background:#16202b;border-color:#16202b}
 body.thema-signal .fhd{color:#16202b;background:#dae1e8}
-body.thema-signal .sgrp{color:#0b57a4}
+body.thema-signal .sgrp{color:#fff;background:#0b57a4}
 body.thema-signal .srow .sl{color:#3c4a58}
 body.thema-signal .sbar{background:#b06a00}
 body.thema-signal .sbar i{background:#0b57a4}
@@ -857,7 +859,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   #statsView .sgrp:first-child{margin-top:0}
   .srow .sv{font-size:17px}
   .srow .sl{font-size:15px;min-width:150px}
-  #statsView .sgrp{margin:10px 0 3px}
+  #statsView .sgrp{margin:10px 0 5px}
   #statsView .sbar{margin:3px 0 7px}
   #statsView .snote{margin-top:10px;font-size:13px}
   /* Die Frame-Knoepfe tragen oft nur eine Ziffer und werden dann zu
@@ -1191,6 +1193,10 @@ function fresh(first){
           boff:true,freeAllowed:false,pending:null,snookeredOn:false,respot:false,
           lastRed:false,
           safes:[0,0],snooks:[0,0],snookWon:[0,0],
+          /* Foul aus einem Snooker, den keiner mit Safe gelegt hat. Zaehlt
+             fuer den, der die Punkte bekommt - wie snookWon, aber getrennt,
+             damit "Snooker brachte Foul" nie ueber 100 % geht. */
+          snookZuf:[0,0],
           /* Ein Safe gilt als misslungen, wenn der Gegner danach
              gepunktet hat - ausser per Fluke. safeOffen haelt fest, wer
              den letzten Safe gespielt hat, solange noch offen ist, ob
@@ -1490,7 +1496,7 @@ function paar(a){return [a[0],a[1]];}
 function summeJetzt(){
   return {pots:paar(S.pots), miss:paar(S.miss),
           safes:paar(S.safes), snooks:paar(S.snooks),
-          snookWon:paar(S.snookWon),
+          snookWon:paar(S.snookWon), snookZuf:paar(S.snookZuf),
           safesWeg:paar(S.safesWeg), flukes:paar(S.flukes),
           fouls:paar(S.fouls), foulsSnk:paar(S.foulsSnk), fpts:paar(S.fpts),
           longTry:paar(S.longTry), longHit:paar(S.longHit),
@@ -1499,6 +1505,85 @@ function summeJetzt(){
           freason:[kopie(S.freason[0]),kopie(S.freason[1])]};
 }
 function kopie(o){var k={},n;for(n in o)if(o.hasOwnProperty(n))k[n]=o[n];return k;}
+
+/* ---------- Woher kam der Snooker? ----------
+   S.snookeredOn ist true, wenn der Gegner mit "Safe + Snooker" einen
+   gelegt hat, "nochmal", wenn der Spieler nach einem Foul aus dem Snooker
+   zurueckbekommen hat, sonst false. */
+function snookerArt(lage){
+  return lage===true?"gelegt":(lage==="nochmal"?"nochmal":"zufall");
+}
+/* Dieselbe Regel, im Nachhinein ueber das Protokoll eines Frames.
+   n zaehlt die Fouls aus dem Snooker je Verursacher - daran sieht man,
+   ob das Protokoll vollstaendig genug war. */
+function snookerImFrame(ev){
+  var won=[0,0],zuf=[0,0],n=[0,0],lage=false,warSnk=false,i,c,e,art;
+  for(i=0;i<ev.length;i++){
+    c=ev[i]; e=c.e;
+    if(c.typ==="break"){lage=false;continue;}
+    if(!e){
+      /* Die Entscheidung nach einem Foul steht als Textzeile da. */
+      if(c.t&&c.t.indexOf("muss nochmal")>=0)lage=warSnk?"nochmal":false;
+      continue;
+    }
+    if(e.typ==="safe"){lage=!!e.snooker;continue;}
+    if(e.typ==="foul"){
+      warSnk=(e.lage==="snooker");
+      if(warSnk){
+        art=snookerArt(lage); n[e.sp]++;
+        if(art==="gelegt")won[1-e.sp]++;
+        else if(art==="zufall")zuf[1-e.sp]++;
+      }
+    }
+    lage=false;
+  }
+  return {won:won,zuf:zuf,n:n};
+}
+/* Matches von vor dem 11.09.2026 zaehlten jedes Foul aus dem Snooker als
+   "Snooker brachte Foul", auch wenn keiner einen gelegt hatte. l ist eine
+   Frame-Liste mit Zaehlerstaenden in summe; die werden hier berichtigt.
+
+   Hat ein Frame noch alle Ereignisse, gilt dieselbe Regel wie beim
+   Spielen. Einem gekuerzten Frame fehlen die Safes - dort kann ein
+   Snooker hoechstens so oft ein Foul bringen, wie Snooker gelegt wurden,
+   der Rest war Zufall. */
+function snookerNachrechnen(l){
+  var won=[0,0],zuf=[0,0],vS=[0,0],vW=[0,0],vF=[0,0],i,p,f,s,w,dS,dW,dF,voll;
+  for(i=0;i<l.length;i++){
+    f=l[i]; s=f.summe;
+    if(!s||!s.snookWon)continue;
+    dS=[0,0]; dW=[0,0]; dF=[0,0];
+    for(p=0;p<2;p++){
+      dS[p]=((s.snooks||[0,0])[p])-vS[p];
+      dW[p]=s.snookWon[p]-vW[p];
+      dF[p]=((s.foulsSnk||[0,0])[p])-vF[p];
+    }
+    w=(!f.gekuerzt&&f.ereignisse)?snookerImFrame(f.ereignisse):null;
+    voll=w&&s.foulsSnk&&w.n[0]===dF[0]&&w.n[1]===dF[1];
+    for(p=0;p<2;p++){
+      if(voll){won[p]+=w.won[p]; zuf[p]+=w.zuf[p];}
+      else{won[p]+=Math.min(dW[p],Math.max(dS[p],0));
+           zuf[p]+=dW[p]-Math.min(dW[p],Math.max(dS[p],0));}
+    }
+    vS=paar(s.snooks||[0,0]); vW=paar(s.snookWon); vF=paar(s.foulsSnk||[0,0]);
+    s.snookWon=paar(won); s.snookZuf=paar(zuf);
+  }
+  return {won:won,zuf:zuf};
+}
+/* Ein gespeichertes Match einmal berichtigen. Hinten haengt ein
+   Schein-Frame mit den Endstaenden - normal aendert er nichts, er faengt
+   nur ab, falls der Verlauf fehlt oder nicht bis zum Ende reicht. */
+function snookerNachziehen(m){
+  if(!m||m.snookZuf||!m.snookWon)return false;
+  var r=snookerNachrechnen((m.verlauf||[]).concat([{gekuerzt:true,
+          summe:{snooks:m.snooks,snookWon:m.snookWon}}]));
+  m.snookWon=r.won; m.snookZuf=r.zuf;
+  if(m.stand&&m.stand.S){
+    if(m.stand.verlauf)snookerNachrechnen(m.stand.verlauf);
+    m.stand.S.snookWon=paar(r.won); m.stand.S.snookZuf=paar(r.zuf);
+  }
+  return true;
+}
 
 /* Einen fertigen Frame ablegen. w ist der Gewinner oder null, wenn der
    Frame annulliert wurde (Re-rack). Die Stoesse waren trotzdem da,
@@ -1832,12 +1917,19 @@ function endVisit(kind,opt){
       extra=", "+opt.reds+(opt.reds>1?" Rote":" Rot")+" gefallen";
     }
     if(opt.snk){
-      /* Foul aus dem Snooker: der Snooker des Gegners hat sich gelohnt. */
-      S.foulsSnk[me]++; S.snookWon[1-me]++;
+      /* Foul aus dem Snooker. Fuer den Gegner zaehlt es nur dann als
+         "Snooker brachte Foul", wenn er ihn vorher mit Safe gelegt hat -
+         und dann nur einmal, auch wenn er zurueckgibt und es noch einmal
+         ein Foul gibt. Ein Snooker, den keiner gelegt hat, zaehlt
+         getrennt. */
+      var art=snookerArt(S.snookeredOn);
+      S.foulsSnk[me]++;
+      if(art==="gelegt")S.snookWon[1-me]++;
+      else if(art==="zufall")S.snookZuf[1-me]++;
       say(p+n+": Foul aus dem Snooker – "+opt.r+", "+opt.v+" an "+
           NAME[1-me]+extra+"."+bt,me===0,
           {typ:"foul",sp:me,punkte:opt.v,grund:opt.r,lage:"snooker",
-           rote:opt.reds||0,long:!!longOn});
+           art:art,rote:opt.reds||0,long:!!longOn});
     }else{
       say(p+n+": Foul bei freier Bahn – "+opt.r+", "+opt.v+" an "+
           NAME[1-me]+extra+"."+bt,me===0,
@@ -1847,7 +1939,8 @@ function endVisit(kind,opt){
     /* War Schwarz der einzige Ball, beendet das Foul den Frame. */
     if(S.phase==="sequence"&&S.seq===7){frameEnd();return;}
     /* Wer weiterspielt, wird auf dem Hauptschirm entschieden. */
-    S.brk=0; S.pending={fouler:me}; S.freeAllowed=false; S.snookeredOn=false;
+    S.brk=0; S.pending={fouler:me,snk:!!opt.snk};
+    S.freeAllowed=false; S.snookeredOn=false;
     snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
     return;
   }
@@ -1868,6 +1961,10 @@ function decideFoul(again){
   if(again){
     S.cur=f;
     S.freeAllowed=false;            /* zurückgegeben: kein Free Ball */
+    /* War er gesnookert, steht er meist wieder im selben Snooker. Die
+       Lage ist dann vorbelegt, gezaehlt wird dieser Snooker aber nicht
+       ein zweites Mal. */
+    if(S.pending.snk)S.snookeredOn="nochmal";
     say(NAME[1-f]+" gibt zurück – "+NAME[f]+" muss nochmal.",f===0);
   }else{
     S.cur=1-f;
@@ -2293,6 +2390,7 @@ function sumHtml(){
   h+=sumRow("davon gehalten",S.safes[0]-S.safesWeg[0],S.safes[1]-S.safesWeg[1]);
   h+=sumRow("davon mit Snooker",S.snooks[0],S.snooks[1]);
   h+=sumRow("Snooker brachte ein Foul",S.snookWon[0],S.snookWon[1]);
+  h+=sumRow("Zufalls-Snooker brachte Foul",S.snookZuf[0],S.snookZuf[1]);
   h+='<div class="gap"></div>';
   h+=sumRow("Fouls",S.fouls[0],S.fouls[1]);
   h+=sumRow("davon aus dem Snooker",S.foulsSnk[0],S.foulsSnk[1]);
@@ -2422,7 +2520,7 @@ function matchRecord(){
           stand:standSchlank(),
           frames:[S.fr[0],S.fr[1]], punkte:[S.sc[0],S.sc[1]],
           pots:S.pots, nichtGelocht:S.miss, safes:S.safes,
-          snooks:S.snooks, snookWon:S.snookWon,
+          snooks:S.snooks, snookWon:S.snookWon, snookZuf:S.snookZuf,
           safesWeg:S.safesWeg, flukes:S.flukes,
           fouls:S.fouls, foulsSnk:S.foulsSnk, fpts:S.fpts,
           freason:S.freason,
@@ -2540,8 +2638,15 @@ function saveFile(){
 function alleMatches(){
   if(!LSOK)return [];
   try{
-    var a=JSON.parse(window.localStorage.getItem("snooker_matches")||"[]");
-    return (a&&a.length)?a:[];
+    var a=JSON.parse(window.localStorage.getItem("snooker_matches")||"[]"),
+        i,neu=false;
+    if(!a||!a.length)return [];
+    /* Aeltere Matches - auch vom Server geholte oder eingelesene - einmal
+       berichtigen und gleich so zurueckschreiben. Der naechste Abgleich
+       bringt die berichtigten Zahlen dann auf den Server. */
+    for(i=0;i<a.length;i++)if(snookerNachziehen(a[i]))neu=true;
+    if(neu)matchesSchreiben(a);
+    return a;
   }catch(e){return [];}
 }
 
@@ -4221,6 +4326,13 @@ function weiterspielen(r){
      Dann faengt der laufende Frame ab hier an - die Frames davor
      lassen sich nicht mehr auftrennen. */
   if(typeof S.frStart!=="number")S.frStart=0;
+  /* Staende von vor dem 11.09.2026 zaehlten jeden Snooker als gelegt -
+     einmal nachrechnen, siehe snookerNachrechnen(). */
+  if(!S.snookZuf){
+    var sr=snookerNachrechnen(verlauf.concat([{ereignisse:comm.slice(S.frStart),
+             summe:{snooks:S.snooks,snookWon:S.snookWon,foulsSnk:S.foulsSnk}}]));
+    S.snookWon=sr.won; S.snookZuf=sr.zuf;
+  }
   say("— Match fortgesetzt. —",false);
   el("ovHome").className="ov";
   el("ovStart").className="ov";
@@ -4312,7 +4424,8 @@ function zahlenFuer(sel){
   var l,f,v,d={};
   if(sel==="gesamt")
     return {pots:S.pots,miss:S.miss,safes:S.safes,snooks:S.snooks,
-            snookWon:S.snookWon,safesWeg:S.safesWeg,flukes:S.flukes,
+            snookWon:S.snookWon,snookZuf:S.snookZuf,
+            safesWeg:S.safesWeg,flukes:S.flukes,
             fouls:S.fouls,foulsSnk:S.foulsSnk,
             fpts:S.fpts,longTry:S.longTry,longHit:S.longHit,
             posTry:S.posTry,posHit:S.posHit,shots:S.shots,shotMs:S.shotMs,
@@ -4322,7 +4435,7 @@ function zahlenFuer(sel){
   v=sel>0?l[sel-1].summe:null;
   d.pots=dif(f.summe,v,"pots");       d.miss=dif(f.summe,v,"miss");
   d.safes=dif(f.summe,v,"safes");     d.snooks=dif(f.summe,v,"snooks");
-  d.snookWon=dif(f.summe,v,"snookWon");
+  d.snookWon=dif(f.summe,v,"snookWon"); d.snookZuf=dif(f.summe,v,"snookZuf");
   d.safesWeg=dif(f.summe,v,"safesWeg");
   d.flukes  =dif(f.summe,v,"flukes");
   d.fouls=dif(f.summe,v,"fouls");     d.foulsSnk=dif(f.summe,v,"foulsSnk");
@@ -4387,6 +4500,9 @@ function drawStats(){
   h+=sQuote("davon mit Snooker",A.snooks[0],A.safes[0],A.snooks[1],A.safes[1]);
   h+=sQuote("Snooker brachte Foul",A.snookWon[0],A.snooks[0],
                                    A.snookWon[1],A.snooks[1]);
+  /* Fouls aus einem Snooker, den keiner gelegt hat. Fuer den, der die
+     Punkte bekam. Ohne Balken - das war Glueck, kein Koennen. */
+  h+=sNur("Zufalls-Snooker brachte Foul",A.snookZuf[0],A.snookZuf[1]);
 
   h+='<div class="sgrp">ZEIT</div>';
   h+=sNur("Stöße",A.shots[0],A.shots[1]);
