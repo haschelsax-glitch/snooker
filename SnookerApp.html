@@ -102,6 +102,21 @@ body{display:flex;flex-direction:column;font-size:16px}
   border:1px solid #b06400;border-radius:10px;padding:14px;font-size:19px;
   font-weight:700;font-family:inherit;color:#3a2200;letter-spacing:.04em}
 .boff button:active{filter:brightness(1.15)}
+/* Wahl der Roten vor dem Anstoss. Gleich hoch wie der Anstossknopf,
+   damit die Leiste nicht waechst. Die Id macht die Regeln staerker als
+   die der Farbthemen, die sonst jeden Knopf der Leiste orange faerben. */
+#boffBar{display:flex;gap:6px;align-items:stretch}
+#boffBar #boff{flex:1 1 auto;width:auto}
+#rotWahl{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center}
+#rotWahl span{font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;opacity:.75;padding:0 2px 2px}
+#rotWahl div{display:flex;gap:3px;flex:1 1 auto}
+#boffBar #rotWahl button{width:44px;padding:0;font-size:17px;font-weight:700;
+  background:#fff;color:#000;border:1px solid #777;border-radius:8px;
+  letter-spacing:0}
+#boffBar #rotWahl button.on{background:#000;color:#fff;border-color:#000}
+#boffBar #rotWahl button[disabled]{display:none}
+body.thema-nacht #rotWahl span,body.thema-tuch #rotWahl span{color:#fff}
 
 .chc{flex:0 0 auto;background:#f5a623;padding:5px 6px 6px}
 .chcTxt{color:#fff;font-size:14px;font-weight:700;padding:0 2px 4px}
@@ -977,7 +992,12 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   </div>
 </div>
 
-<div class="boff" id="boffBar"><button id="boff">ANSTOSS</button></div>
+<div class="boff" id="boffBar">
+  <div class="rotWahl" id="rotWahl"><span>Rote</span><div>
+    <button data-n="15">15</button><button data-n="10">10</button><button data-n="6">6</button>
+  </div></div>
+  <button id="boff">ANSTOSS</button>
+</div>
 <div class="boff" id="nfBar"><button id="nextFrame">NÄCHSTER FRAME</button></div>
 
 <div id="statsView"></div>
@@ -1190,6 +1210,10 @@ function el(i){return document.getElementById(i);}
 function fresh(first){
   return {sc:[0,0],fr:[0,0],brk:0,cur:first,first:first,phase:"red",
           reds:redsTotal,seq:2,
+          /* Mit wie vielen Roten dieser Frame begann. Kann vor dem
+             Anstoss kleiner werden als beim Start des Matches und gilt
+             dann auch fuer die folgenden Frames. */
+          frameReds:redsTotal,
           boff:true,freeAllowed:false,pending:null,snookeredOn:false,respot:false,
           lastRed:false,
           safes:[0,0],snooks:[0,0],snookWon:[0,0],
@@ -1366,7 +1390,8 @@ function commZeichnen(){
     h="";
     for(i=0;i<verlauf.length;i++){
       f=verlauf[i];
-      h+=frKopf("Frame "+f.nr,i,offenFrame===i);
+      h+=frKopf("Frame "+f.nr+(f.rote&&f.rote<15?" · "+f.rote+" Rote":""),
+                i,offenFrame===i);
       if(offenFrame===i){
         ev=f.ereignisse||[];
         for(j=0;j<ev.length;j++)h+=commHtml(ev[j]);
@@ -1592,6 +1617,7 @@ function frameAblegen(w){
                 gewinner:(w===0||w===1)?w:null,
                 annulliert:false,
                 anstoss:S.first,
+                rote:S.frameReds||redsTotal,
                 dauerMs:S.frameMs,
                 ereignisse:comm.slice(S.frStart||0),
                 summe:summeJetzt()});
@@ -1660,14 +1686,15 @@ function rerack(){
   S.hiBrk=hiBrkAus(verlauf);
   S.matchMs=Math.max(0,S.matchMs-S.frameMs);
   S.frameMs=0;
-  S.sc=[0,0]; S.brk=0; S.cur=S.first; S.phase="red"; S.reds=redsTotal;
+  if(!S.frameReds)S.frameReds=redsTotal;
+  S.sc=[0,0]; S.brk=0; S.cur=S.first; S.phase="red"; S.reds=S.frameReds;
   S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
   S.snookeredOn=false; S.respot=false; S.lastRed=false;
   snookOn=false; longOn=false; freeOn=false; flukeOn=false;
   S.safeOffen=null;
   comm.length=0;
   S.frStart=0;
-  say("— Re-rack. Frame neu begonnen, "+redsTotal+" Rote. "+NAME[S.first]+
+  say("— Re-rack. Frame neu begonnen, "+S.frameReds+" Rote. "+NAME[S.first]+
       " stößt wieder an. —",false);
 }
 
@@ -1741,12 +1768,13 @@ function rerackNachziehen(m){
 function nextFrame(){
   snap(); taktAus(); S.frameMs=0;
   var f=1-S.first;
-  S.sc=[0,0]; S.brk=0; S.cur=f; S.first=f; S.phase="red"; S.reds=redsTotal;
+  if(!S.frameReds)S.frameReds=redsTotal;
+  S.sc=[0,0]; S.brk=0; S.cur=f; S.first=f; S.phase="red"; S.reds=S.frameReds;
   S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
   S.snookeredOn=false; S.respot=false;
   snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
   S.safeOffen=null;
-  say("— Neuer Frame, "+redsTotal+" Rote. "+NAME[f]+" stößt an. —",false);
+  say("— Neuer Frame, "+S.frameReds+" Rote. "+NAME[f]+" stößt an. —",false);
   S.frStart=comm.length;
 }
 
@@ -1799,6 +1827,7 @@ function draw(){
   el("rsp1").textContent=NAME[1];
   el("boffBar").style.display=(S.boff&&!wait)?"":"none";
   el("boff").textContent=NAME[S.cur].toUpperCase()+" STÖSST AN";
+  rotWahlZeichnen();
   if(S.pending){
     el("chcTxt").textContent="Foul von "+NAME[S.pending.fouler]+" – wer spielt weiter?";
     el("chOpp").textContent=NAME[1-S.pending.fouler]+" übernimmt";
@@ -2082,6 +2111,36 @@ el("chAgain").addEventListener("click",function(){
 
 el("boff").addEventListener("click",function(){
   var t0=now(); endVisit("breakoff"); draw(); measure(t0);
+},false);
+
+/* ---------- Rote fuer diesen Frame ----------
+   Vor dem Anstoss laesst sich die Zahl der Roten senken, etwa wenn die
+   Zeit knapp wird. Mehr als beim Start des Matches geht nicht. Die Wahl
+   bleibt fuer die folgenden Frames stehen, bis sie wieder geaendert
+   wird. Hat das Match nur eine moegliche Zahl, bleibt die Wahl weg. */
+function rotWahlZeichnen(){
+  var kids=el("rotWahl").getElementsByTagName("button"),i,n,frei=0,
+      jetzt=S.frameReds||redsTotal;
+  for(i=0;i<kids.length;i++){
+    n=parseInt(kids[i].getAttribute("data-n"),10);
+    kids[i].disabled=(n>redsTotal);
+    if(n<=redsTotal)frei++;
+    kids[i].className=(n===jetzt?"on":"");
+  }
+  el("rotWahl").style.display=(frei>1)?"":"none";
+}
+el("rotWahl").addEventListener("click",function(e){
+  var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
+  if(!b||!S.boff||S.phase!=="red"||S.pending||S.respot)return;
+  var n=parseInt(b.getAttribute("data-n"),10),t0=now(),
+      last=comm.length?comm[comm.length-1]:null,
+      z={t:"Dieser Frame mit "+n+" Roten.",m:false,rw:true};
+  if(!n||n>redsTotal||n===(S.frameReds||redsTotal))return;
+  snap();
+  S.frameReds=n; S.reds=n;
+  /* Mehrmals umgetippt: nur eine Zeile im Protokoll, die letzte Wahl. */
+  if(last&&last.rw)comm[comm.length-1]=z; else comm.push(z);
+  draw(); measure(t0);
 },false);
 
 el("undo").addEventListener("click",function(){
@@ -3506,6 +3565,8 @@ el("xOk").addEventListener("click",function(){
   S.sc[0]=fix.s[0]; S.sc[1]=fix.s[1];
   S.fr[0]=fix.f[0]; S.fr[1]=fix.f[1];
   S.reds=fix.reds; S.cur=fix.cur; S.phase=fix.phase; S.pending=null;
+  /* Vor dem Anstoss ist das die Zahl, mit der der Frame beginnt. */
+  if(S.boff&&fix.reds>0)S.frameReds=fix.reds;
   S.lastRed=false; S.respot=false;
   if(S.phase==="sequence"&&S.seq<2)S.seq=2;
   S.brk=0;
@@ -4528,6 +4589,8 @@ function weiterspielen(r){
   /* Und die aus der Zeit vor dem Fluke kennen Safe-Quote und Flukes nicht. */
   if(!S.flukes)S.flukes=[0,0];
   if(!S.safesWeg)S.safesWeg=[0,0];
+  /* Und die aus der Zeit vor der Wahl der Roten kennen frameReds nicht. */
+  if(!S.frameReds)S.frameReds=redsTotal;
   if(S.safeOffen===undefined)S.safeOffen=null;
   if(typeof S.frameMs!=="number")S.frameMs=0;
   if(typeof S.matchMs!=="number")S.matchMs=0;
