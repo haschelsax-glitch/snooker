@@ -2717,6 +2717,7 @@ function alleMatches(){
       if(snookerNachziehen(a[i]))neu=true;
       /* Erst danach: der Re-rack-Abzug nimmt auch snookZuf mit. */
       if(rerackNachziehen(a[i]))neu=true;
+      if(uhrNachziehen(a[i]))neu=true;
     }
     if(neu)matchesSchreiben(a);
     return a;
@@ -2787,6 +2788,41 @@ function totHat(a,id){
   return false;
 }
 
+/* ---------- Uhr des Geraets ---------- */
+/* Server-Uhr minus Geraete-Uhr in ms. Jede Antwort des Servers bringt
+   seine Uhrzeit im Kopf "Date" mit. null, solange keine Antwort da ist. */
+var srvAbw=null;
+var UHR_SPIEL=10*60*1000;   /* bis 10 Minuten gilt die Uhr als richtig */
+/* Datum eines Matches um abw ms verschieben. uhrKorrigiert merkt sich,
+   um wie viel - damit man es spaeter nachvollziehen kann. */
+function uhrVerschieben(m,abw){
+  var t=Date.parse(m.gespeichert);
+  if(t)m.gespeichert=new Date(t+abw).toISOString();
+  if(m.stand&&typeof m.stand.zeit==="number")m.stand.zeit+=abw;
+  m.uhrKorrigiert=(m.uhrKorrigiert||0)+abw;
+}
+/* Einmalig: Daniel–Hagen vom 15.09.2026 wurde mit der Tablet-Uhr auf dem
+   03.07.2024 gespeichert. Der Abgleich lief um 17:05 Uhr, kurz nach dem
+   Speichern - daher 17:04 Uhr. Ab jetzt faengt Schritt 0b das ab. */
+var UHR_FIX={"M1719990370047-19":"2026-09-15T15:04:00.000Z"};
+function uhrNachziehen(m){
+  var soll=m&&m.id&&UHR_FIX[m.id],t;
+  if(!soll||String(m.gespeichert).slice(0,4)!=="2024")return false;
+  t=Date.parse(m.gespeichert);
+  if(!t)return false;
+  uhrVerschieben(m,Date.parse(soll)-t);
+  return true;
+}
+/* "3 Stunden", "4 Tage", "über 2 Jahre" */
+function uhrText(ms){
+  var min=Math.round(Math.abs(ms)/60000),h=Math.round(min/60),
+      tg=Math.floor(min/1440),j=Math.floor(tg/365);
+  if(j>=1)return "über "+j+(j===1?" Jahr":" Jahre");
+  if(tg>=2)return tg+" Tage";
+  if(h>=2)return h+" Stunden";
+  return min+" Minuten";
+}
+
 /* ---------- Eine Anfrage an den Server ---------- */
 function srvRuf(art,pfad,koerper,prefer,fertig,fehler){
   var x;
@@ -2800,6 +2836,9 @@ function srvRuf(art,pfad,koerper,prefer,fertig,fehler){
   if(prefer)x.setRequestHeader("Prefer",prefer);
   x.onreadystatechange=function(){
     if(x.readyState!==4)return;
+    var d=0;
+    try{d=Date.parse(x.getResponseHeader("Date")||"");}catch(e5){d=0;}
+    if(d)srvAbw=d-Date.now();
     if(x.status>=200&&x.status<300){
       var r=null;
       try{r=x.responseText?JSON.parse(x.responseText):null;}catch(e3){r=null;}
@@ -2826,6 +2865,50 @@ function srvHoch(tabelle,konflikt,zeilen,fertig,fehler){
   }
   weiter();
 }
+/* Ist ein laufender Stand vom Server schon erledigt? Ja, wenn sein Match
+   geloescht ist oder spaeter gespeichert wurde als der Stand. Und ja,
+   wenn er von diesem Geraet stammt und hier nichts mehr laeuft - dann
+   wurde er hier beendet oder verworfen (eigenerWeg). */
+function standErledigt(d,eigenerWeg){
+  var a,i,g;
+  if(eigenerWeg)return true;
+  if(!d.mid)return false;
+  if(totHat(totLesen().m,d.mid))return true;
+  a=alleMatches();
+  for(i=0;i<a.length;i++)if(a[i].id===d.mid){
+    g=new Date(a[i].gespeichert).getTime();
+    return !!g&&g>=(d.zeit||0);
+  }
+  return false;
+}
+/* Den laufenden Stand auf dem Server leeren. Echt loeschen darf der
+   Scorer dort nicht, also wird daten auf null gesetzt. */
+function serverStandLeeren(ger,fertig,fehler){
+  srvHoch("laufend","id",[{id:"aktuell",daten:null,geraet:ger}],
+          fertig,fehler);
+}
+function serverStandLoeschenFragen(d,ger){
+  seiteOpen("Stand vom Server löschen?",
+    '<div class="askInfo warn">Der laufende Stand <b>'+esc(d.namen[0])+" "+
+    d.S.fr[0]+"–"+d.S.fr[1]+" "+esc(d.namen[1])+"</b> wird vom Server "+
+    "genommen. Kein Gerät kann ihn danach von dort weiterspielen. "+
+    "Gespeicherte Matches bleiben unberührt.</div>",
+    [{t:"Ja, vom Server löschen",weg:true,f:function(){
+       seiteOpen("Wird gelöscht",
+         '<div class="askInfo">Einen Moment.</div>',[]);
+       serverStandLeeren(ger,function(){
+         seiteOpen("Gelöscht",
+           '<div class="askInfo">Der Stand ist vom Server weg.</div>',
+           [{t:"Zurück",f:homeAuf,zurueck:true}]);
+       },function(txt){
+         seiteOpen("Nicht gelöscht",
+           '<div class="askInfo warn">'+esc(txt)+"</div>",
+           [{t:"Zurück",f:homeAuf,zurueck:true}]);
+       });
+     }},
+     {t:"Doch nicht",f:homeAuf,zurueck:true}]);
+}
+
 /* Liste fuer die Server-Abfrage: in.("a","b") */
 function inListe(a){
   var i,t=[];
@@ -2894,6 +2977,7 @@ function abgleich(){
     return;
   }
   abgleichLaeuft=true;
+  srvAbw=null;
   var ger=geraetId(),
       mLokal=matchesMitId(), lLokal=ligenLesen(), sLokal=spielerLesen(),
       tot=totLesen(), lauf=laufendLesen(),
@@ -2941,6 +3025,40 @@ function abgleich(){
             w();
           },f);
       },f);
+    },f);
+  });
+  /* 0b. Geht die Uhr dieses Geraets falsch? Das Tablet hat keine SIM und
+        holt die Zeit nur aus dem Netz - nach einem Neustart ohne Netz steht
+        sie irgendwo. Matches, die der Server noch nicht kennt, wurden seit
+        dem letzten Abgleich gespeichert, also mit dieser Uhr. Ihr Datum
+        wird um die Abweichung verschoben, bevor sie hochgehen. */
+  schritte.push(function(w,f){
+    srvRuf("GET","matches?select=id",null,null,function(r){
+      var i,j,m,t,dort={},neu={},n=0,abw=srvAbw;
+      if(abw===null||Math.abs(abw)<=UHR_SPIEL){w();return;}
+      ber.uhrAbw=abw;
+      r=r||[];
+      for(i=0;i<r.length;i++)dort[r[i].id]=1;
+      for(i=0;i<mLokal.length;i++){
+        m=mLokal[i];
+        if(!m.id||dort[m.id]||totHat(tot.m,m.id))continue;
+        t=Date.parse(m.gespeichert);
+        if(!t)continue;
+        uhrVerschieben(m,abw);
+        neu[m.id]=1; n++;
+      }
+      if(n){
+        matchesSchreiben(mLokal);
+        for(i=0;i<lLokal.length;i++)
+          for(j=0;j<(lLokal[i].ergebnisse||[]).length;j++){
+            m=lLokal[i].ergebnisse[j];
+            t=Date.parse(m.datum);
+            if(m.mid&&neu[m.mid]&&t)m.datum=new Date(t+abw).toISOString();
+          }
+        ligenSchreiben(lLokal);
+      }
+      ber.uhrKorr=n;
+      w();
     },f);
   });
 
@@ -3089,13 +3207,18 @@ function abgleich(){
     },f);
   });
   /* 9. Liegt auf dem Server ein neuerer laufender Stand? Nur nachfragen,
-        nie einfach ueberschreiben. */
+        nie einfach ueberschreiben. Ein Stand, der schon erledigt ist,
+        wird dort geleert - sonst fragt jedes Geraet ewig nach. */
   schritte.push(function(w,f){
     srvRuf("GET","laufend?id=eq.aktuell&select=daten,geraet",null,null,
       function(r){
         var s=(r&&r.length)?r[0]:null;
-        if(s&&s.daten&&s.daten.S&&s.geraet!==ger&&
-           (!lauf||(s.daten.zeit||0)>(lauf.zeit||0)))
+        if(!s||!s.daten||!s.daten.S){w();return;}
+        if(standErledigt(s.daten,s.geraet===ger&&!lauf)){
+          serverStandLeeren(ger,function(){w();},f);
+          return;
+        }
+        if(s.geraet!==ger&&(!lauf||(s.daten.zeit||0)>(lauf.zeit||0)))
           ber.serverLauf=s.daten;
         w();
       },f);
@@ -3111,6 +3234,16 @@ function abgleich(){
       (ber.spielerRunter?", "+ber.spielerRunter+" Spieler":"")+".<br>"+
       (ber.weg?"Anderswo gelöscht, hier weggenommen: "+ber.weg+".":"")+
       "</div>";
+    if(ber.uhrAbw){
+      h+='<div class="askInfo warn">Die Uhr dieses Geräts geht <b>'+
+         uhrText(ber.uhrAbw)+(ber.uhrAbw>0?" nach":" vor")+"</b>.<br>"+
+         (ber.uhrKorr
+           ? "Bei "+(ber.uhrKorr===1?"einem neuen Match":ber.uhrKorr+
+             " neuen Matches")+" wurde das Datum berichtigt.<br>"
+           : "")+
+         "Bitte in den Einstellungen unter „Datum und Uhrzeit“ "+
+         "„Automatisch“ einschalten.</div>";
+    }
     var kn=[];
     if(ber.serverLauf){
       h+='<div class="askInfo">Auf dem Server liegt ein neuerer laufender '+
@@ -3120,6 +3253,9 @@ function abgleich(){
          ber.serverLauf.S.sc[0]+"–"+ber.serverLauf.S.sc[1]+".</div>";
       kn.push({t:"Diesen Stand hier weiterspielen",f:function(){
         seiteZu(); weiterspielen(ber.serverLauf); draw();
+      }});
+      kn.push({t:"Stand vom Server löschen",weg:true,f:function(){
+        serverStandLoeschenFragen(ber.serverLauf,ger);
       }});
     }
     kn.push({t:"Zurück",f:homeAuf,zurueck:true});
