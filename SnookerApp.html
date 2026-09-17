@@ -1965,10 +1965,10 @@ function pot(v){
   S.lastRed=wasRed; S.posOpen=true;
   if(S.brk>S.hiBrk[me])S.hiBrk[me]=S.brk;
   longOn=false; freeOn=false; flukeOn=false; S.freeAllowed=false; S.snookeredOn=false;
+  /* Gleichstand bei nur noch Schwarz ist kein Respot - die Schwarze wird
+     normal gespielt. Erst wenn sie faellt (oder ein Foul den Frame beendet)
+     und es dann gleich steht, kommt sie neu auf den Punkt; das regelt frameEnd(). */
   if(S.phase==="sequence"&&S.seq>7)frameEnd();
-  /* Schwarz ist gerade der einzige Ball geworden. Steht es gleich,
-     wird Schwarz neu aufgesetzt und ausgespielt. */
-  else if(S.phase==="sequence"&&S.seq===7&&!S.respot&&S.sc[0]===S.sc[1])goRespot();
 }
 
 function endVisit(kind,opt){
