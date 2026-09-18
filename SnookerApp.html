@@ -1050,7 +1050,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 </div></div>
 
 <div class="ov" id="ovMenu"><div class="card">
-  <h2>Menü</h2>
+  <h2>Menü <span id="mVer"></span></h2>
   <div class="farbwahl" id="farbwahl">
     <button class="fw-jetzt" data-thema="">jetzt</button>
     <button class="fw-nacht" data-thema="thema-nacht">Nacht</button>
@@ -3441,7 +3441,47 @@ function stufeJetzt(){
   if(h<=720)return "1 (Handy)";
   return "0 (Tablet, volle Größe)";
 }
+/* ---------- Welche Fassung laeuft hier gerade? ----------
+   Die Zahl steht bewusst nirgends im Text dieser Datei. Sie kaeme
+   sonst frueher oder spaeter ins Rutschen, weil beim Hochladen nur
+   die VERSION in sw.js hochgezaehlt wird. Gefragt wird deshalb der
+   Service Worker: sein Cache heisst "snooker-v16". Das ist auch die
+   ehrlichere Antwort - dort steht, was das Geraet wirklich geladen
+   hat, nicht was es haette laden sollen. Gibt es keinen Cache (als
+   Datei geoeffnet, alter Browser), wird sw.js selbst gelesen. Geht
+   auch das nicht, bleibt das Feld leer statt zu raten. */
+function versionSuchen(fertig){
+  var hoechste=null;
+  function merken(name){
+    var m=/snooker-v(\d+)/.exec(name||"");
+    if(m&&(hoechste===null||+m[1]>hoechste))hoechste=+m[1];
+  }
+  function ausSwDatei(){
+    if(!window.fetch){fertig("");return;}
+    fetch("sw.js").then(function(a){return a.text();}).then(function(t){
+      merken(t); fertig(hoechste===null?"":"v"+hoechste);
+    })["catch"](function(){fertig("");});
+  }
+  if(!window.caches||!window.caches.keys){ausSwDatei();return;}
+  window.caches.keys().then(function(l){
+    for(var i=0;i<l.length;i++)merken(l[i]);
+    /* Kurz nach einem Update liegen zwei Caches nebeneinander - der
+       alte wird erst beim Aktivieren geloescht. Die hoehere Zahl
+       ist die, die gleich gilt. */
+    if(hoechste!==null){fertig("v"+hoechste);return;}
+    ausSwDatei();
+  })["catch"](ausSwDatei);
+}
+/* Einmal nachschauen reicht - waehrend die App laeuft, aendert sich
+   die Fassung nicht mehr. */
+var versionText=null;
+function versionZeigen(){
+  if(versionText!==null){el("mVer").textContent=versionText;return;}
+  versionSuchen(function(t){versionText=t; el("mVer").textContent=t;});
+}
+
 el("menu").addEventListener("click",function(){
+  versionZeigen();
   el("menuInfo").innerHTML=aktuelleLiga
     ? '<div class="askInfo">Z\u00e4hlt f\u00fcr: '+esc(aktuelleLiga.name)+"</div>"
     : "";
