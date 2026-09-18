@@ -33,7 +33,12 @@ body{display:flex;flex-direction:column;font-size:16px}
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .nm.act{background:#29c7f2;color:#fff;font-weight:700}
 .fr{flex:0 0 auto;padding:0 12px;font-size:25px;font-weight:600;
-  display:flex;align-items:center}
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+/* Die vereinbarte Spiellaenge unter dem Framestand. Leer und damit
+   unsichtbar, solange ohne Begrenzung gespielt wird. */
+.frBo{font-size:11px;font-weight:600;line-height:1.1;opacity:.72;
+  white-space:nowrap}
+.frBo:empty{display:none}
 
 .pts{flex:0 0 auto;background:#b6e83a;display:flex}
 .pt{flex:1;display:flex;justify-content:center}
@@ -73,6 +78,10 @@ body{display:flex;flex-direction:column;font-size:16px}
   width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;
   border:1px solid rgba(255,255,255,.75)}
 .comm .ln i.long{box-shadow:0 0 0 2px #f5a623}
+/* Mit dem Rest gelocht. Kein dritter Ring - long und Fluke haben die
+   beiden Ringfarben schon. Die Unterstreichung ist frei und braucht
+   in keinem der vier Farbthemen eine eigene Regel. */
+.comm .ln i.rest,.brk .bb i.rest{text-decoration:underline}
 /* Fluke: violetter Ring. Eine Regel fuer alle vier Themen - Violett
    liest sich auf hellem wie auf dunklem Grund. */
 .comm .ln i.gluck,.brk .bb i.gluck{box-shadow:0 0 0 2px #a259d9}
@@ -102,6 +111,11 @@ body{display:flex;flex-direction:column;font-size:16px}
   border:1px solid #b06400;border-radius:10px;padding:14px;font-size:19px;
   font-weight:700;font-family:inherit;color:#3a2200;letter-spacing:.04em}
 .boff button:active{filter:brightness(1.15)}
+/* Steht an der Stelle von "Naechster Frame", sobald die vereinbarte
+   Spiellaenge erreicht ist. Kein Knopf - es gibt nichts mehr zu tippen. */
+#matchDone{border:1px solid #b06400;border-radius:10px;padding:14px;
+  font-size:19px;font-weight:700;color:#3a2200;letter-spacing:.04em;
+  text-align:center;background:#f3e0b4}
 /* Wahl der Roten vor dem Anstoss. Gleich hoch wie der Anstossknopf,
    damit die Leiste nicht waechst. Die Id macht die Regeln staerker als
    die der Farbthemen, die sonst jeden Knopf der Leiste orange faerben. */
@@ -943,6 +957,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   <button class="tg" id="tFluke">FLUKE</button>
   <button class="tg" id="tSnook">SNOOKER</button>
   <button class="tg" id="tFree">FREE BALL</button>
+  <button class="tg" id="tRest">REST</button>
 </div>
 <div class="pad padL" id="pad">
   <button class="k-safe" data-a="safe">Safe</button>
@@ -955,7 +970,8 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 
 <div class="names">
   <div class="nm act" id="n0">Spieler 1</div>
-  <div class="fr" id="fr">0&ndash;0</div>
+  <div class="fr" id="frWrap"><div id="fr">0&ndash;0</div>
+    <div class="frBo" id="frBo"></div></div>
   <div class="nm" id="n1">Spieler 2</div>
 </div>
 
@@ -998,7 +1014,8 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   </div></div>
   <button id="boff">ANSTOSS</button>
 </div>
-<div class="boff" id="nfBar"><button id="nextFrame">NÄCHSTER FRAME</button></div>
+<div class="boff" id="nfBar"><button id="nextFrame">NÄCHSTER FRAME</button>
+  <div id="matchDone">MATCH BEENDET</div></div>
 
 <div id="statsView"></div>
 <div id="brkView"></div>
@@ -1048,6 +1065,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   <button class="ok" id="mNames">Namen ändern</button>
   <button class="ok" id="mPause">Pause</button>
   <button class="ok" id="mNew">Neues Match</button>
+  <button class="ok" id="mPark">Match unterbrechen</button>
   <button class="ok" id="mEnd">Spielende</button>
   <button class="ok" id="mSync">Mit Server abgleichen</button>
   <button class="ok" id="mExport">Alles exportieren</button>
@@ -1181,6 +1199,17 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
     <button data-n="10">10 Rote</button>
     <button data-n="6">6 Rote</button>
   </div>
+  <h3>SPIELLÄNGE</h3>
+  <select id="sBestOf">
+    <option value="0" selected>Ohne Begrenzung</option>
+    <option value="3">Best of 3 &middot; 2 Siege</option>
+    <option value="5">Best of 5 &middot; 3 Siege</option>
+    <option value="7">Best of 7 &middot; 4 Siege</option>
+    <option value="9">Best of 9 &middot; 5 Siege</option>
+    <option value="11">Best of 11 &middot; 6 Siege</option>
+    <option value="15">Best of 15 &middot; 8 Siege</option>
+    <option value="21">Best of 21 &middot; 11 Siege</option>
+  </select>
   <h3>WER STÖSST AN</h3>
   <div class="row" id="sBreak">
     <button data-n="0" class="on">Spieler 1</button>
@@ -1204,6 +1233,8 @@ var S, redsTotal=15, hist=[], comm=[], worst=0;
    dem Rueckgaengig die Laenge. */
 var verlauf=[];
 var longOn=false, snookOn=false, freeOn=false, flukeOn=false;
+/* Hilfsqueue. Zaehlt wie LONG: nur Lochversuche, kein Safe. */
+var restOn=false;
 
 function el(i){return document.getElementById(i);}
 
@@ -1214,6 +1245,11 @@ function fresh(first){
              Anstoss kleiner werden als beim Start des Matches und gilt
              dann auch fuer die folgenden Frames. */
           frameReds:redsTotal,
+          /* Vereinbarte Spiellaenge: die Zahl hinter "Best of". 0 heisst
+             ohne Begrenzung - dann laufen die Frames wie bisher weiter,
+             bis von Hand Schluss gemacht wird. Steht im Stand und nicht
+             daneben, damit sie beim Weiterspielen von selbst mitkommt. */
+          bestOf:0,
           boff:true,freeAllowed:false,pending:null,snookeredOn:false,respot:false,
           lastRed:false,
           safes:[0,0],snooks:[0,0],snookWon:[0,0],
@@ -1228,13 +1264,31 @@ function fresh(first){
           safesWeg:[0,0],safeOffen:null,flukes:[0,0],
           fouls:[0,0],foulsSnk:[0,0],fpts:[0,0],freason:[{},{}],
           pots:[0,0],miss:[0,0],
-          longTry:[0,0],longHit:[0,0],hiBrk:[0,0],
+          longTry:[0,0],longHit:[0,0],
+          /* Lochversuche mit dem Rest und davon gefallen. */
+          restTry:[0,0],restHit:[0,0],hiBrk:[0,0],
           posTry:[0,0],posHit:[0,0],posOpen:false,
           shots:[0,0],shotMs:[0,0],frameMs:0,matchMs:0,pausenMs:0,
           /* Ab welchem Eintrag in comm der laufende Frame beginnt.
              Davor stehen die Ergebniszeile des vorigen Frames und die
              Kopfzeile - die gehoeren nicht mehr dazu. */
           frStart:0};
+}
+
+/* ---------- Spiellaenge ----------
+   "Best of 7" heisst: sieben Frames sind vereinbart, gewonnen hat, wer
+   vier davon holt. Bei 0 ist nichts vereinbart und das Match endet nur
+   von Hand. */
+function noetigeSiege(){
+  return S.bestOf?Math.floor(S.bestOf/2)+1:0;
+}
+/* Der Spieler, der die noetigen Siege hat, sonst -1. */
+function matchSieger(){
+  var n=noetigeSiege();
+  if(!n)return -1;
+  if(S.fr[0]>=n)return 0;
+  if(S.fr[1]>=n)return 1;
+  return -1;
 }
 
 /* ---------- Zeitmessung ----------
@@ -1306,7 +1360,8 @@ var CIRC=["","c-rot","c-gelb","c-gruen","c-braun","c-blau","c-pink","c-schwarz"]
    Die Zeile wird nie veraendert, sondern ersetzt - sonst wuerde
    "Zurueck" die alten Kopien mit veraendern. */
 function sayPot(me,val,punkte,frei,anstoss,gelocht){
-  var ball={v:val,f:!!frei,l:!!longOn,g:!!flukeOn,pv:gelocht||val},
+  var ball={v:val,f:!!frei,l:!!longOn,g:!!flukeOn,r:!!restOn,
+            pv:gelocht||val},
       last=comm.length?comm[comm.length-1]:null;
   if(last&&last.typ==="break"&&last.sp===me&&last.offen){
     comm[comm.length-1]={typ:"break",sp:me,b:last.b.concat([ball]),
@@ -1472,10 +1527,12 @@ function ballHtml(bs){
     if(b.f){
       /* Free Ball: aussen die Farbe des Ball on, innen die gelochte
          Kugel, darin die Punktzahl. */
-      h+='<i class="'+CIRC[b.v]+" free"+(b.l?" long":"")+(b.g?" gluck":"")+'">'+
+      h+='<i class="'+CIRC[b.v]+" free"+(b.l?" long":"")+(b.g?" gluck":"")+
+          (b.r?" rest":"")+'">'+
          '<span class="fb '+CIRC[b.pv||b.v]+'">'+b.v+"</span></i>";
     }else{
-      h+='<i class="'+CIRC[b.v]+(b.l?" long":"")+(b.g?" gluck":"")+'">'+b.v+"</i>";
+      h+='<i class="'+CIRC[b.v]+(b.l?" long":"")+(b.g?" gluck":"")+
+          (b.r?" rest":"")+'">'+b.v+"</i>";
     }
   }
   return h;
@@ -1489,7 +1546,8 @@ function commText(c,nm){
   for(i=0;i<c.b.length;i++){
     b=c.b[i];
     t+=(i?", ":"")+(b.f?BALL[b.pv||b.v]+" als Free Ball für "+BALL[b.v]
-                     :BALL[b.v])+(b.l?" (long)":"")+(b.g?" (Fluke)":"");
+                     :BALL[b.v])+(b.l?" (long)":"")+(b.g?" (Fluke)":"")+
+                     (b.r?" (Rest)":"");
   }
   return t+" – "+c.p;
 }
@@ -1505,7 +1563,8 @@ function resetPhase(){
    den Frame. Bei Gleichstand kommt Schwarz neu auf den Punkt. */
 function goRespot(){
   S.brk=0; S.pending=null; S.freeAllowed=false; S.snookeredOn=false;
-  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  restOn=false; S.lastRed=false;
   S.phase="sequence"; S.seq=7; S.respot=true;
   say("Gleichstand "+S.sc[0]+"–"+S.sc[1]+" bei nur noch Schwarz – "+
       "Schwarz kommt neu auf den Punkt.",false);
@@ -1524,6 +1583,7 @@ function summeJetzt(){
           safesWeg:paar(S.safesWeg), flukes:paar(S.flukes),
           fouls:paar(S.fouls), foulsSnk:paar(S.foulsSnk), fpts:paar(S.fpts),
           longTry:paar(S.longTry), longHit:paar(S.longHit),
+          restTry:paar(S.restTry), restHit:paar(S.restHit),
           posTry:paar(S.posTry), posHit:paar(S.posHit),
           shots:paar(S.shots), shotMs:paar(S.shotMs),
           freason:[kopie(S.freason[0]),kopie(S.freason[1])]};
@@ -1625,7 +1685,8 @@ function frameAblegen(w){
 
 function frameEnd(){
   S.brk=0; S.pending=null; S.freeAllowed=false; S.snookeredOn=false;
-  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  restOn=false; S.lastRed=false;
   /* Ein Safe kurz vor Schluss wird nicht mehr beurteilt - er gilt als
      gehalten. Sonst wuerde ihn der erste Ball des naechsten Frames
      nachtraeglich zum Fehler machen. */
@@ -1639,6 +1700,7 @@ function awardFrame(w,zusatz){
   S.brk=0; S.pending=null; S.respot=false; S.freeAllowed=false;
   S.snookeredOn=false; S.lastRed=false;
   snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  restOn=false;
   S.safeOffen=null;
   S.fr[w]++;
   S.phase="done";
@@ -1653,6 +1715,25 @@ function awardFrame(w,zusatz){
   comm.length=0;
   say(erg,false);
   S.frStart=comm.length;
+  matchEndePruefen();
+}
+
+/* Ist die vereinbarte Spiellaenge erreicht? Dann eine Zeile ins
+   Protokoll und gleich das Spielende-Fenster aufmachen. Kurz verzoegert,
+   damit das Ergebnis des Frames vorher auf dem Brett steht. Wer sich
+   vertippt hat, kommt mit "Zurueck zum Spiel" und dem Zurueck-Knopf
+   wieder heraus - S.bestOf bleibt dabei unangetastet. */
+function matchEndePruefen(){
+  var w=matchSieger(),txt;
+  if(w<0)return;
+  txt="Match beendet: "+NAME[w]+" gewinnt "+S.fr[0]+"–"+S.fr[1]+
+      " (Best of "+S.bestOf+").";
+  say("— "+txt+" —",false);
+  setTimeout(function(){
+    if(matchSieger()<0)return;
+    spielendeFragen("Match beendet",
+      '<div class="askInfo"><b>'+esc(txt)+"</b></div>");
+  },350);
 }
 
 /* Das hoechste Break beider Spieler ueber eine Frame-Liste. */
@@ -1691,6 +1772,7 @@ function rerack(){
   S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
   S.snookeredOn=false; S.respot=false; S.lastRed=false;
   snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  restOn=false;
   S.safeOffen=null;
   comm.length=0;
   S.frStart=0;
@@ -1772,7 +1854,8 @@ function nextFrame(){
   S.sc=[0,0]; S.brk=0; S.cur=f; S.first=f; S.phase="red"; S.reds=S.frameReds;
   S.seq=2; S.boff=true; S.freeAllowed=false; S.pending=null;
   S.snookeredOn=false; S.respot=false;
-  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  restOn=false; S.lastRed=false;
   S.safeOffen=null;
   say("— Neuer Frame, "+S.frameReds+" Rote. "+NAME[f]+" stößt an. —",false);
   S.frStart=comm.length;
@@ -1808,10 +1891,13 @@ function snookerFeld(){
 function draw(){
   el("s0").textContent=S.sc[0];
   el("s1").textContent=S.sc[1];
-  var frTxt=S.fr[0]+"–"+S.fr[1];
-  if(frTxt!==frAlt){
-    frAlt=frTxt; el("fr").textContent=frTxt;
-    el("frGap").style.width=el("fr").offsetWidth+"px";
+  var frTxt=S.fr[0]+"–"+S.fr[1],
+      boTxt=S.bestOf?"Best of "+S.bestOf:"";
+  if(frTxt+"|"+boTxt!==frAlt){
+    frAlt=frTxt+"|"+boTxt;
+    el("fr").textContent=frTxt;
+    el("frBo").textContent=boTxt;
+    el("frGap").style.width=el("frWrap").offsetWidth+"px";
   }
   el("n0").textContent=NAME[0];
   el("n1").textContent=NAME[1];
@@ -1822,7 +1908,12 @@ function draw(){
   var wait=!!S.pending||S.respot||S.phase==="done";
   el("chcBar").style.display=S.pending?"":"none";
   el("rspBar").style.display=S.respot?"":"none";
+  /* Nach dem letzten Frame eines Best-of gibt es keinen naechsten mehr:
+     an der Stelle des Knopfes steht dann nur noch der Hinweis. */
+  var fertig=matchSieger()>=0;
   el("nfBar").style.display=(S.phase==="done")?"":"none";
+  el("nextFrame").style.display=fertig?"none":"";
+  el("matchDone").style.display=fertig?"":"none";
   el("rsp0").textContent=NAME[0];
   el("rsp1").textContent=NAME[1];
   el("boffBar").style.display=(S.boff&&!wait)?"":"none";
@@ -1877,10 +1968,12 @@ function draw(){
   el("tLong").disabled=wait;
   el("tSnook").disabled=wait;
   el("tFluke").disabled=wait;
+  el("tRest").disabled=wait;
   el("tSnook").className="tg"+(snookOn?" on":"");
   el("tLong").className="tg"+(longOn?" on":"");
   el("tFree").className="tg"+(freeOn?" on":"");
   el("tFluke").className="tg"+(flukeOn?" on":"");
+  el("tRest").className="tg"+(restOn?" on":"");
 
   uhr();
   autoSaveBald();
@@ -1890,7 +1983,7 @@ function snap(){
   sichern=true;          /* es wird wieder gespielt, also mitschreiben */
   hist.push({s:JSON.parse(JSON.stringify(S)),c:comm.slice(),
              v:verlauf.length,
-             l:longOn,k:snookOn,f:freeOn,x:flukeOn});
+             l:longOn,k:snookOn,f:freeOn,x:flukeOn,rs:restOn});
   /* 200 Schritte, das sind grob vier bis fuenf Frames. Ein Frame allein
      braucht schon 55 bis 80. Jeder Eintrag haelt eine Kopie des
      Spielstands, rund 500 Zeichen - 200 davon sind etwa 100 KB. Die
@@ -1902,7 +1995,7 @@ function snap(){
 function undo(){
   var h=hist.pop(); if(!h)return;
   S=h.s; comm=h.c.slice(); longOn=h.l; snookOn=h.k; freeOn=h.f;
-  flukeOn=!!h.x;
+  flukeOn=!!h.x; restOn=!!h.rs;
   /* An verlauf wird nur angehaengt, nie geaendert - abschneiden reicht. */
   if(typeof h.v==="number")verlauf.length=h.v;
   taktAus();
@@ -1920,6 +2013,9 @@ function pot(v){
   if(an)S.boff=false;
   /* Long Pot: der Schalter war gesetzt, also war es ein Versuch. */
   if(longOn){S.longTry[me]++;S.longHit[me]++;}
+  /* Rest: derselbe Gedanke - der Schalter war gesetzt, also war es
+     ein Lochversuch mit der Hilfsqueue, und er ist gefallen. */
+  if(restOn){S.restTry[me]++;S.restHit[me]++;}
   if(flukeOn)S.flukes[me]++;
   /* Der Safe des Gegners wird hier gerade beantwortet: es fallen
      Punkte, also hat er nicht gehalten. Ein Fluke zaehlt nicht dagegen
@@ -1964,7 +2060,7 @@ function pot(v){
   }
   S.lastRed=wasRed; S.posOpen=true;
   if(S.brk>S.hiBrk[me])S.hiBrk[me]=S.brk;
-  longOn=false; freeOn=false; flukeOn=false; S.freeAllowed=false; S.snookeredOn=false;
+  longOn=false; freeOn=false; flukeOn=false; restOn=false; S.freeAllowed=false; S.snookeredOn=false;
   /* Gleichstand bei nur noch Schwarz ist kein Respot - die Schwarze wird
      normal gespielt. Erst wenn sie faellt (oder ein Foul den Frame beendet)
      und es dann gleich steht, kommt sie neu auf den Punkt; das regelt frameEnd(). */
@@ -1981,6 +2077,7 @@ function endVisit(kind,opt){
     S.posOpen=false;
     /* Ein Long-Pot-Versuch, der nicht gefallen ist. */
     if(longOn&&(kind==="miss"||kind==="foul"))S.longTry[me]++;
+    if(restOn&&(kind==="miss"||kind==="foul"))S.restTry[me]++;
   }
   /* Dieser Zug bringt dem Gegner keine Punkte - sein Safe hat also
      gehalten. Auch ein Foul zaehlt als gehalten: der Safe hat sogar
@@ -2039,7 +2136,8 @@ function endVisit(kind,opt){
     /* Wer weiterspielt, wird auf dem Hauptschirm entschieden. */
     S.brk=0; S.pending={fouler:me,snk:!!opt.snk};
     S.freeAllowed=false; S.snookeredOn=false;
-    snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+    snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+    restOn=false; S.lastRed=false;
     return;
   }
 
@@ -2049,7 +2147,8 @@ function endVisit(kind,opt){
   /* Nach einem Safe mit Snooker steht der neue Spieler im Snooker. */
   S.snookeredOn=(kind==="safe"&&wasSnook);
   resetPhase();
-  snookOn=false; longOn=false; freeOn=false; flukeOn=false; S.lastRed=false;
+  snookOn=false; longOn=false; freeOn=false; flukeOn=false;
+  restOn=false; S.lastRed=false;
 }
 
 /* Entscheidung nach einem Foul */
@@ -2158,6 +2257,7 @@ tog("tLong",function(){return longOn;},function(x){longOn=x;});
 tog("tSnook",function(){return snookOn;},function(x){snookOn=x;});
 tog("tFree",function(){return freeOn;},function(x){freeOn=x;});
 tog("tFluke",function(){return flukeOn;},function(x){flukeOn=x;});
+tog("tRest",function(){return restOn;},function(x){restOn=x;});
 
 
 function group(id,cb){
@@ -2555,7 +2655,7 @@ function neueMatchId(){
 function standJetzt(){
   return {v:2,zeit:Date.now(),S:S,comm:comm,verlauf:verlauf,mid:matchId,
           namen:[NAME[0],NAME[1]],rote:redsTotal,liga:aktuelleLiga,
-          lg:longOn,sn:snookOn,fb:freeOn,flk:flukeOn};
+          lg:longOn,sn:snookOn,fb:freeOn,flk:flukeOn,rst:restOn};
 }
 
 /* Das Protokoll als Text, Frame fuer Frame, aus einer Frame-Liste
@@ -2644,6 +2744,8 @@ function matchRecord(){
   return {id:matchId,
           gespeichert:new Date().toISOString(),
           spieler:[NAME[0],NAME[1]], rote:redsTotal,
+          /* 0 oder fehlend heisst: ohne Begrenzung gespielt. */
+          bestOf:S.bestOf||0,
           liga:aktuelleLiga,
           stand:standSchlank(),
           frames:[S.fr[0],S.fr[1]], punkte:[S.sc[0],S.sc[1]],
@@ -2652,7 +2754,8 @@ function matchRecord(){
           safesWeg:S.safesWeg, flukes:S.flukes,
           fouls:S.fouls, foulsSnk:S.foulsSnk, fpts:S.fpts,
           freason:S.freason,
-          longTry:S.longTry, longHit:S.longHit, hiBrk:S.hiBrk,
+          longTry:S.longTry, longHit:S.longHit,
+          restTry:S.restTry, restHit:S.restHit, hiBrk:S.hiBrk,
           posTry:S.posTry, posHit:S.posHit,
           zeit:{stoesse:S.shots, stossMs:S.shotMs,
                 spielMs:S.matchMs, pausenMs:S.pausenMs},
@@ -3404,8 +3507,13 @@ function endeSpeicher(){
         esc(aktuelleLiga.name)+"."
       : "<br>Die Meisterschaft konnte nicht aktualisiert werden.";
   }
+  /* brettLeeren() setzt warErsatz zurueck - der Merker muss also vorher
+     gesichert werden, sonst meldet auch ein ersetztes Match jedes Mal,
+     es sei neu dazugekommen. Faellt auf, seit ein unterbrochenes Match
+     immer wieder unter derselben Kennung gespeichert wird. */
+  var ersetzt=warErsatz;
   sichern=false; laufendWeg(); brettLeeren();
-  fertigMelden((warErsatz
+  fertigMelden((ersetzt
     ? "Das Match wurde aktualisiert. Im Tablet "+
       (n===1?"liegt 1 Match.":"liegen "+n+" Matches.")
     : "Match Nummer "+n+" liegt jetzt im Speicher des Tablets.")+extra);
@@ -3434,7 +3542,10 @@ function endeVerwerfenFragen(){
     });
   el("askC").textContent="Doch nicht";
 }
-el("mEnd").addEventListener("click",function(){
+/* Das Spielende-Fenster. Kommt ueber den Menuepunkt und von selbst,
+   sobald eine vereinbarte Spiellaenge erreicht ist. kopf und vorspann
+   sagen nur, was oben drauf steht. */
+function spielendeFragen(kopf,vorspann){
   el("ovMenu").className="ov";
   var info=LSOK
     ? '<div class="askInfo">Wird im Speicher des Tablets abgelegt. '+
@@ -3444,14 +3555,40 @@ el("mEnd").addEventListener("click",function(){
   /* Vier Wege: sichern, wegwerfen, exportieren, oder zurueck ins Spiel.
      Kann der Browser nicht speichern, faellt der erste Weg weg. */
   if(LSOK)
-    askOpen("Spielende",sumHtml()+info,
+    askOpen(kopf||"Spielende",(vorspann||"")+sumHtml()+info,
       "Speichern und beenden",endeSpeicher,
       "Nicht speichern",endeVerwerfenFragen,
       "Als Datei exportieren",endeDatei);
   else
-    askOpen("Spielende",sumHtml()+info,
+    askOpen(kopf||"Spielende",(vorspann||"")+sumHtml()+info,
       "Als Datei exportieren",endeDatei,
       "Nicht speichern",endeVerwerfenFragen);
+  el("askC").textContent="Zurück zum Spiel";
+}
+el("mEnd").addEventListener("click",function(){spielendeFragen("",""); },false);
+
+/* Match unterbrechen: speichern und zur Startseite. Derselbe Weg wie
+   "Speichern und beenden", nur unmissverstaendlich benannt - das Match
+   ist nicht weg, es steht unter "Gespeicherte Matches" mit einem ↻ und
+   laesst sich Tage spaeter weiterspielen. So lange koennen andere hier
+   ihre eigenen Matches spielen. */
+el("mPark").addEventListener("click",function(){
+  el("ovMenu").className="ov";
+  if(!etwasPassiert()){
+    askOpen("Nichts zu unterbrechen",
+      '<div class="askInfo">In diesem Match ist noch nichts passiert.</div>',
+      "Alles klar",null);
+    el("askC").textContent="Zurück zum Spiel";
+    return;
+  }
+  if(!LSOK){spielendeFragen("Match unterbrechen","");return;}
+  askOpen("Match unterbrechen",
+    '<div class="askInfo">Das Match wird gespeichert und wartet unter '+
+    "<b>Gespeicherte Matches</b> mit einem ↻ davor. Dort geht es "+
+    "später über <b>Weiterspielen</b> an derselben Stelle weiter — auch "+
+    "an einem anderen Tag. Bis dahin ist das Tablet frei für andere "+
+    "Matches.</div>"+sumHtml(),
+    "Speichern und unterbrechen",endeSpeicher);
   el("askC").textContent="Zurück zum Spiel";
 },false);
 /* Ist überhaupt schon etwas passiert, das verloren gehen könnte? */
@@ -4550,7 +4687,10 @@ el("hAuswert").addEventListener("click",function(){
 },false);
 
 /* ---------- Neues Match ---------- */
-var startReds=15,startBreak=0;
+var startReds=15,startBreak=0,startBestOf=0;
+el("sBestOf").addEventListener("change",function(){
+  startBestOf=parseInt(this.value,10)||0;
+},false);
 group("sReds",function(b){startReds=parseInt(b.getAttribute("data-n"),10);});
 group("sBreak",function(b){startBreak=parseInt(b.getAttribute("data-n"),10);});
 /* Vorbereiteter Startdialog. Die Meisterschaft bleibt dabei stehen -
@@ -4576,9 +4716,12 @@ el("sOk").addEventListener("click",function(){
   spielerMerken(NAME[0]); spielerMerken(NAME[1]);
   redsTotal=startReds;
   S=fresh(startBreak);
+  S.bestOf=startBestOf;
   hist=[];comm=[];verlauf=[];commFrisch();
   matchId=neueMatchId();
   if(aktuelleLiga)say("— Meisterschaft: "+aktuelleLiga.name+" —",false);
+  if(S.bestOf)say("— Best of "+S.bestOf+": "+noetigeSiege()+
+                  " Frames zum Sieg. —",false);
   say("Neuer Frame, "+redsTotal+" Rote.",false);
   S.frStart=comm.length;
   el("ovStart").className="ov";
@@ -4592,6 +4735,7 @@ function weiterspielen(r){
   redsTotal=r.rote||15;
   S=r.S; comm=r.comm||[]; verlauf=r.verlauf||[]; hist=[]; commFrisch();
   longOn=!!r.lg; snookOn=!!r.sn; freeOn=!!r.fb; flukeOn=!!r.flk;
+  restOn=!!r.rst;
   aktuelleLiga=r.liga||null;
   matchId=r.mid||neueMatchId();
   /* Staende aus einer aelteren Fassung kennen die Zeitfelder noch nicht. */
@@ -4601,6 +4745,10 @@ function weiterspielen(r){
   if(!S.safesWeg)S.safesWeg=[0,0];
   /* Und die aus der Zeit vor der Wahl der Roten kennen frameReds nicht. */
   if(!S.frameReds)S.frameReds=redsTotal;
+  /* Staende von vor der Spiellaenge galten ohne Begrenzung. */
+  if(typeof S.bestOf!=="number")S.bestOf=0;
+  /* Und die aus der Zeit vor dem Rest kennen seine Zaehler nicht. */
+  if(!S.restTry){S.restTry=[0,0];S.restHit=[0,0];}
   if(S.safeOffen===undefined)S.safeOffen=null;
   if(typeof S.frameMs!=="number")S.frameMs=0;
   if(typeof S.matchMs!=="number")S.matchMs=0;
@@ -4724,6 +4872,7 @@ function zahlenFuer(sel){
             safesWeg:S.safesWeg,flukes:S.flukes,
             fouls:S.fouls,foulsSnk:S.foulsSnk,
             fpts:S.fpts,longTry:S.longTry,longHit:S.longHit,
+            restTry:S.restTry,restHit:S.restHit,
             posTry:S.posTry,posHit:S.posHit,shots:S.shots,shotMs:S.shotMs,
             freason:S.freason,hiBrk:S.hiBrk,dauerMs:S.matchMs,frame:null};
   l=frameListe(); f=l[sel];
@@ -4737,6 +4886,7 @@ function zahlenFuer(sel){
   d.fouls=dif(f.summe,v,"fouls");     d.foulsSnk=dif(f.summe,v,"foulsSnk");
   d.fpts=dif(f.summe,v,"fpts");
   d.longTry=dif(f.summe,v,"longTry"); d.longHit=dif(f.summe,v,"longHit");
+  d.restTry=dif(f.summe,v,"restTry"); d.restHit=dif(f.summe,v,"restHit");
   d.posTry=dif(f.summe,v,"posTry");   d.posHit=dif(f.summe,v,"posHit");
   d.shots=dif(f.summe,v,"shots");     d.shotMs=dif(f.summe,v,"shotMs");
   d.freason=difGrund(f.summe.freason,v?v.freason:null);
@@ -4783,6 +4933,8 @@ function drawStats(){
      Glueck war. Ohne Balken: mehr Flukes ist nicht besser. */
   h+=sNur("davon Flukes",A.flukes[0],A.flukes[1]);
   h+=sQuote("Long Pots",A.longHit[0],A.longTry[0],A.longHit[1],A.longTry[1]);
+  /* Mit der Hilfsqueue gelocht, von den Versuchen mit ihr. */
+  h+=sQuote("Rest-Quote",A.restHit[0],A.restTry[0],A.restHit[1],A.restTry[1]);
   h+=sQuote("Zweite Bälle",A.posHit[0],A.posTry[0],A.posHit[1],A.posTry[1]);
   h+=sZahl("Höchstes Break",A.hiBrk[0],A.hiBrk[1]);
 
