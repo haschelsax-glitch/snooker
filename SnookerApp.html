@@ -3532,6 +3532,13 @@ function drawFix(){
   el("fixN0").textContent=NAME[0]; el("fixN1").textContent=NAME[1];
   el("fixF0").textContent=NAME[0]; el("fixF1").textContent=NAME[1];
   el("fixCur0").textContent=NAME[0]; el("fixCur1").textContent=NAME[1];
+  /* Ohne Rote kann nicht auf Rot gespielt werden. Der Knopf wird
+     gesperrt, und eine schon gesetzte Wahl springt auf die Farbfolge. */
+  var rotKnopf=el("fixPhase").getElementsByTagName("button")[0];
+  rotKnopf.disabled=(fix.reds===0);
+  if(fix.reds===0&&fix.phase==="red"){
+    fix.phase="sequence"; pick("fixPhase",2);
+  }
 }
 el("mFix").addEventListener("click",function(){
   el("ovMenu").className="ov";
@@ -3568,6 +3575,9 @@ el("xOk").addEventListener("click",function(){
   /* Vor dem Anstoss ist das die Zahl, mit der der Frame beginnt. */
   if(S.boff&&fix.reds>0)S.frameReds=fix.reds;
   S.lastRed=false; S.respot=false;
+  /* Sind alle Roten weg, geht es mit Gelb weiter - egal was in der
+     Korrektur eingestellt war. */
+  if(S.reds===0&&S.phase==="red"){S.phase="sequence"; S.seq=2;}
   if(S.phase==="sequence"&&S.seq<2)S.seq=2;
   S.brk=0;
   say("Korrektur von Hand: "+S.sc[0]+"–"+S.sc[1]+", "+S.reds+" Rote.",false);
