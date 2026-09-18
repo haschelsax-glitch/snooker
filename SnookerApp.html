@@ -130,7 +130,7 @@ body{display:flex;flex-direction:column;font-size:16px}
   letter-spacing:0}
 #boffBar #rotWahl button.on{background:#000;color:#fff;border-color:#000}
 #boffBar #rotWahl button[disabled]{display:none}
-body.thema-nacht #rotWahl span,body.thema-tuch #rotWahl span{color:#fff}
+body.thema-nacht #rotWahl span{color:#fff}
 
 .chc{flex:0 0 auto;background:#f5a623;padding:5px 6px 6px}
 .chcTxt{color:#fff;font-size:14px;font-weight:700;padding:0 2px 4px}
@@ -457,10 +457,8 @@ body.breaks #brkView{display:block}
   font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);
   padding:0;line-height:1}
 .farbwahl button.an{box-shadow:0 0 0 3px #fff, 0 0 0 5px rgba(0,0,0,.45)}
-.fw-jetzt{background:#cc5500}
+.fw-standard{background:#cc5500}
 .fw-nacht{background:#1c2027}
-.fw-tuch{background:#14573a}
-.fw-signal{background:#0b57a4}
 
 /* ---------- Farbthemen ----------
    Nur Farben. Groessen und Abstaende stehen weiter oben und bleiben in
@@ -568,171 +566,6 @@ body.thema-nacht .chips button.on{background:#fff;color:#000;border-color:#fff}
 body.thema-nacht .loesch{background:#4e1c1c;border:2px solid #8f3535;color:#ffc9c9}
 body.thema-nacht .loesch:active{background:#ffc9c9;color:#4e1c1c}
 
-/* Farbthema "tuch" - nur die Farben, alles andere bleibt.
-   Am <body> zusaetzlich die Klasse thema-tuch setzen.
-   theme-color im <head> muss per JS gesetzt werden: #5a3a1e
-   Leitfarbe fuer den Knopf im Farbwaehler: #14573a
-   Hinweis: die Regel html,body im Grundthema laesst sich nicht
-   praefixieren; hier steht nur body. Der Hintergrund von html
-   bleibt also #000, was verdeckt ist, weil body den Schirm fuellt. */
-
-body.thema-tuch{background:#241f14;color:#241f14}
-body.thema-tuch .top{background:#5a3a1e}
-body.thema-tuch .tbtn{background:linear-gradient(#e2c489,#bd9450);border:1px solid #7a5626;color:#241704}
-body.thema-tuch .lat{color:#efe2c8}
-body.thema-tuch .lat b{color:#ffd88a}
-body.thema-tuch .names{background:#e3d8bc}
-body.thema-tuch .nm.act{background:#14573a;color:#f7f2e2}
-body.thema-tuch .pts{background:#e3d8bc}
-body.thema-tuch .ptBox.s1{background:#fbf7ec;color:#241f14}
-body.thema-tuch .ptBox.s2{background:#f3c3b4;color:#4a1200}
-body.thema-tuch .ptBox.s3{background:#b5342a}
-body.thema-tuch .ptBox.s4{background:#6e1610}
-body.thema-tuch .comm{background:#f3ecd9}
-body.thema-tuch .comm .frHd{background:#ddd0ae;color:#3a2c10}
-body.thema-tuch .comm .frHd.auf{background:#14573a;color:#f7f2e2;border-color:#0e4630}
-body.thema-tuch .comm .ln i.long{box-shadow:0 0 0 2px #b07a1e}
-body.thema-tuch .st1{background:#8a5a20;color:#fbf3e2}
-body.thema-tuch .st2{background:#14573a;color:#f0f7e8}
-body.thema-tuch .st3{background:#241704;color:#f7f2e2}
-body.thema-tuch .st4{background:#ddd0ae;color:#3a2c10}
-body.thema-tuch .boff{background:#14573a}
-body.thema-tuch .boff button{background:linear-gradient(#e2c489,#b8892f);border:1px solid #7a5626;color:#241704}
-body.thema-tuch .chc{background:#8a5a20}
-body.thema-tuch .chcTxt{color:#fbf3e2}
-body.thema-tuch .chcRow button{background:linear-gradient(#fbf7ec,#ece3cd);border:1px solid #7a5626;color:#241704}
-body.thema-tuch .chcRow button:active{background:#241704;color:#fbf3e2}
-body.thema-tuch .tog{background:#14573a}
-body.thema-tuch .tg{background:#f3ecd9;border:2px solid #0e4630;color:#4a4030}
-body.thema-tuch .tg.on{background:#241704;color:#fbf3e2;border-color:#241704}
-body.thema-tuch .pad{background:#14573a}
-body.thema-tuch .pad button.ball{background:linear-gradient(#fbf7ec,#ece3cd);color:#241f14}
-body.thema-tuch .pad button.ball:active{background:#f0d79a}
-body.thema-tuch .askInfo{background:#e8ddc2}
-body.thema-tuch .askInfo.warn{background:#f5cfc5;color:#6e1610}
-body.thema-tuch .fsum{color:#14573a;background:#e8ddc2}
-body.thema-tuch .fsum.warn{background:#f5cfc5;color:#6e1610}
-body.thema-tuch #statsView{background:#f3ecd9}
-body.thema-tuch .sh .p0{background:#14573a}
-body.thema-tuch .sh .p1{background:#c9a063;color:#241704}
-body.thema-tuch .fsel .fs{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
-body.thema-tuch .fsel .fs.on{background:#14573a;color:#f7f2e2;border-color:#14573a}
-body.thema-tuch .fhd{color:#3a2c10;background:#e3d8bc}
-body.thema-tuch .sgrp{color:#fff;background:#14573a}
-body.thema-tuch .srow .sl{color:#4a3a18}
-body.thema-tuch .sbar{background:#c9a063}
-body.thema-tuch .sbar i{background:#14573a}
-body.thema-tuch .sbar.off{background:#e0dac6}
-body.thema-tuch .snote{color:#5a4a28}
-body.thema-tuch #brkView{background:#f3ecd9}
-body.thema-tuch .brk{background:#e3d8bc}
-body.thema-tuch .brk .bf{color:#5a4a28}
-body.thema-tuch .brk .bb i.long{box-shadow:0 0 0 2px #b07a1e}
-body.thema-tuch .brkLeer{color:#5a4a28}
-body.thema-tuch .tabs{background:#241704}
-body.thema-tuch .tab{color:#c3b393}
-body.thema-tuch .tab.on{color:#ffe0a8;background:#14573a}
-body.thema-tuch .card{background:#f3ecd9}
-body.thema-tuch .card h3{color:#14573a}
-body.thema-tuch .row button{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
-body.thema-tuch .chip{background:#fbf7ec;border-color:#14573a;color:#241f14}
-body.thema-tuch .row button.on{background:#14573a;color:#f7f2e2;border-color:#14573a}
-body.thema-tuch .ok{background:linear-gradient(#2e8f5e,#14573a);border:1px solid #0e4630;color:#ffffff}
-body.thema-tuch .cancel{background:#fbf7ec;border:2px solid #a3936e}
-body.thema-tuch .card input{border:2px solid #14573a;background:#fbf7ec;color:#241f14}
-body.thema-tuch .card select{border:2px solid #14573a;background:#fbf7ec;color:#241f14}
-body.thema-tuch .step .val{background:#fbf7ec;border:2px solid #14573a}
-body.thema-tuch .step button{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
-body.thema-tuch .step button:active{background:#14573a}
-body.thema-tuch .lz.kopf{color:#14573a}
-body.thema-tuch .liste button.zeile{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
-body.thema-tuch .liste button.zeile:active{background:#14573a}
-body.thema-tuch .liste .zeile.tot{background:#fbf7ec;border:2px solid #ddd0ae}
-body.thema-tuch .chips button{background:#fbf7ec;border:2px solid #14573a;color:#241f14}
-body.thema-tuch .chips button.on{background:#14573a;border-color:#14573a;color:#f7f2e2}
-body.thema-tuch .loesch{background:#f5cfc5;border:2px solid #a8443a;color:#6e1610}
-body.thema-tuch .loesch:active{background:#6e1610}
-
-/* Farbthema "signal" - nur die Farben, alles andere bleibt.
-   Am <body> zusaetzlich die Klasse thema-signal setzen.
-   theme-color im <head> muss per JS gesetzt werden: #16202b
-   Leitfarbe fuer den Knopf im Farbwaehler: #0b57a4
-   Hinweis: die Regel html,body im Grundthema laesst sich nicht
-   praefixieren; hier steht nur body. Der Hintergrund von html
-   bleibt also #000, was verdeckt ist, weil body den Schirm fuellt. */
-
-body.thema-signal{background:#16202b;color:#16202b}
-body.thema-signal .top{background:#16202b}
-body.thema-signal .tbtn{background:linear-gradient(#ffffff,#dbe1e8);border:1px solid #7d8b99;color:#16202b}
-body.thema-signal .lat{color:#c6d1dc}
-body.thema-signal .lat b{color:#8fe07a}
-body.thema-signal .names{background:#ffffff}
-body.thema-signal .nm.act{background:#0b57a4}
-body.thema-signal .pts{background:#ffffff}
-body.thema-signal .ptBox.s1{background:#eef1f4;color:#16202b}
-body.thema-signal .ptBox.s2{background:#ffd6d6;color:#7a0000}
-body.thema-signal .ptBox.s3{background:#c81e1e}
-body.thema-signal .ptBox.s4{background:#7a0f0f}
-body.thema-signal .comm{background:#f4f6f8}
-body.thema-signal .comm .frHd{background:#dae1e8;border:1px solid rgba(0,0,0,.3);color:#16202b}
-body.thema-signal .comm .frHd.auf{background:#0b57a4;border-color:#073c73}
-body.thema-signal .comm .ln i.long{box-shadow:0 0 0 2px #b06a00}
-body.thema-signal .st1{background:#8a4b00}
-body.thema-signal .st2{background:#0b57a4}
-body.thema-signal .st4{background:#dae1e8;color:#16202b}
-body.thema-signal .boff{background:#c4ced8}
-body.thema-signal .boff button{background:linear-gradient(#ffb63f,#e07800);border:1px solid #8a4b00}
-body.thema-signal .chc{background:#8a4b00}
-body.thema-signal .chcRow button{background:linear-gradient(#ffffff,#e9edf1);border:1px solid #8a4b00;color:#16202b}
-body.thema-signal .chcRow button:active{background:#16202b}
-body.thema-signal .tog{background:#c4ced8}
-body.thema-signal .tg{border:2px solid #16202b;color:#4a5764}
-body.thema-signal .tg.on{background:#16202b;border-color:#16202b}
-body.thema-signal .pad{background:#c4ced8}
-body.thema-signal .pad button.ball{background:linear-gradient(#ffffff,#f0f2f5);color:#16202b}
-body.thema-signal .pad button.ball:active{background:#0b57a4}
-body.thema-signal .askInfo{background:#eef1f4}
-body.thema-signal .fsum{color:#0b3d70;background:#e2eaf3}
-body.thema-signal #statsView{background:#f4f6f8}
-body.thema-signal .sh .p0{background:#0b57a4}
-body.thema-signal .sh .p1{background:#8a4b00}
-body.thema-signal .fsel .fs{border:2px solid #16202b;color:#16202b}
-body.thema-signal .fsel .fs.on{background:#16202b;border-color:#16202b}
-body.thema-signal .fhd{color:#16202b;background:#dae1e8}
-body.thema-signal .sgrp{color:#fff;background:#0b57a4}
-body.thema-signal .srow .sl{color:#3c4a58}
-body.thema-signal .sbar{background:#b06a00}
-body.thema-signal .sbar i{background:#0b57a4}
-body.thema-signal .sbar.off{background:#c4ced8}
-body.thema-signal .snote{color:#4a5764}
-body.thema-signal #brkView{background:#f4f6f8}
-body.thema-signal .brk{background:#e4e9ee}
-body.thema-signal .brk .bf{color:#4a5764}
-body.thema-signal .brk .bb i.long{box-shadow:0 0 0 2px #b06a00}
-body.thema-signal .brkLeer{color:#4a5764}
-body.thema-signal .tabs{background:#16202b}
-body.thema-signal .tab{color:#a7b4c1}
-body.thema-signal .tab.on{color:#7cc4ff;background:#243343}
-body.thema-signal .card{background:#ffffff}
-body.thema-signal .card h3{color:#0b57a4}
-body.thema-signal .row button{border:2px solid #16202b;color:#16202b}
-body.thema-signal .chip{border-color:#16202b;color:#16202b}
-body.thema-signal .row button.on{background:#16202b;border-color:#16202b;color:#fff}
-body.thema-signal .ok{background:linear-gradient(#1a7fd4,#0b57a4);border:1px solid #073c73;color:#ffffff}
-body.thema-signal .cancel{border:2px solid #7d8b99}
-body.thema-signal .card input{border:2px solid #16202b}
-body.thema-signal .card select{border:2px solid #16202b}
-body.thema-signal .step .val{border:2px solid #16202b}
-body.thema-signal .step button{border:2px solid #16202b;color:#16202b}
-body.thema-signal .step button:active{background:#16202b}
-body.thema-signal .lz.kopf{color:#0b57a4}
-body.thema-signal .liste button.zeile{border:2px solid #16202b;color:#16202b}
-body.thema-signal .liste button.zeile:active{background:#16202b}
-body.thema-signal .liste .zeile.tot{border:2px solid #c4ced8}
-body.thema-signal .chips button{border:2px solid #16202b;color:#16202b}
-body.thema-signal .chips button.on{background:#16202b;border-color:#16202b;color:#fff}
-body.thema-signal .loesch{background:#ffd6d6;border:2px solid #a83a3a}
-
 /* Eine Antwort-Zeile mit einer Kugel behaelt die Ballfarbe. Die Themen
    faerben .chip um, deshalb muessen die Ballfarben dahinter stehen -
    sonst steht dunkle Schrift auf dunklem Blau oder Schwarz. */
@@ -811,8 +644,6 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
      nehmen deshalb dessen Farbe - eine Zeile je Thema, wie ueberall
      sonst im Programm auch. */
   body.thema-nacht .qLeft,body.thema-nacht .qRight{background:#262c35}
-  body.thema-tuch .qLeft,body.thema-tuch .qRight{background:#14573a}
-  body.thema-signal .qLeft,body.thema-signal .qRight{background:#c4ced8}
 
   /* Kopfleiste: "Menue" ganz links, "Zurueck" ganz rechts - beide
      genau dort, wo die Daumen sowieso liegen. Die Reaktionszeit
@@ -1052,24 +883,17 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
 <div class="ov" id="ovMenu"><div class="card">
   <h2>Menü <span id="mVer"></span></h2>
   <div class="farbwahl" id="farbwahl">
-    <button class="fw-jetzt" data-thema="">jetzt</button>
+    <button class="fw-standard" data-thema="">Standard</button>
     <button class="fw-nacht" data-thema="thema-nacht">Nacht</button>
-    <button class="fw-tuch" data-thema="thema-tuch">Tuch</button>
-    <button class="fw-signal" data-thema="thema-signal">Signal</button>
   </div>
   <div id="menuInfo"></div>
   <button class="ok" id="mHome">Startseite</button>
   <button class="ok" id="mFix">Korrektur</button>
   <button class="ok" id="mFrEnd">Frame beenden</button>
   <button class="ok" id="mRerack">Re-rack (Frame neu)</button>
-  <button class="ok" id="mNames">Namen ändern</button>
   <button class="ok" id="mPause">Pause</button>
-  <button class="ok" id="mNew">Neues Match</button>
   <button class="ok" id="mPark">Match unterbrechen</button>
   <button class="ok" id="mEnd">Spielende</button>
-  <button class="ok" id="mSync">Mit Server abgleichen</button>
-  <button class="ok" id="mExport">Alles exportieren</button>
-  <button class="ok" id="mImport">Sicherung einlesen</button>
   <button class="cancel" id="mBack">Zurück zum Spiel</button>
 </div></div>
 
@@ -1134,6 +958,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
     <button data-p="colour">Farbe frei</button>
     <button data-p="sequence">Farbfolge</button>
   </div>
+  <button class="ok" id="xNames">Namen ändern</button>
   <button class="ok" id="xOk">Übernehmen</button>
   <button class="cancel" id="xCancel">Abbrechen</button>
 </div></div>
@@ -1160,6 +985,7 @@ body .ok.k-foul[disabled]{opacity:.75;color:#7a5555}
   <button class="ok" id="hExport">Alles exportieren</button>
   <button class="ok" id="hImport">Sicherung einlesen</button>
   <button class="ok" id="hAuswert">Auswertung</button>
+  <button class="cancel" id="hBack" style="display:none">Zurück zum Spiel</button>
 </div></div>
 
 <input type="file" id="impFile" accept=".json,application/json"
@@ -3427,9 +3253,6 @@ function abgleich(){
   weiter();
 }
 el("hSync").addEventListener("click",abgleich,false);
-el("mSync").addEventListener("click",function(){
-  el("ovMenu").className="ov"; abgleich();
-},false);
 
 /* ---------- Menü ---------- */
 /* Welche Groessenstufe gilt gerade? Nur zum Nachsehen - beim Nachstellen
@@ -3508,6 +3331,17 @@ el("mFrEnd").addEventListener("click",function(){
 
 el("mRerack").addEventListener("click",function(){
   el("ovMenu").className="ov";
+  /* Ist der Frame schon zu Ende, steht er im Verlauf und im Framestand.
+     Ein Re-rack nimmt ihn dort nicht mehr heraus, zieht aber seine Dauer
+     von der Spielzeit ab - die Gesamtzeit wäre dauerhaft zu kurz.
+     Deshalb hier dieselbe Sperre wie bei "Frame beenden". */
+  if(S.phase==="done"){
+    askOpen("Re-rack",
+      '<div class="askInfo">Der Frame ist schon zu Ende und gewertet. '+
+      "Ein Re-rack geht jetzt nicht mehr.</div>",
+      "Alles klar",null);
+    return;
+  }
   askOpen("Re-rack",
     '<div class="askInfo">Der Frame wird neu begonnen. Der Punktestand '+
     S.sc[0]+"–"+S.sc[1]+" wird gelöscht. "+NAME[S.first]+
@@ -3637,33 +3471,6 @@ function etwasPassiert(x){
   return z.fr[0]+z.fr[1]+z.sc[0]+z.sc[1]+z.pots[0]+z.pots[1]+
          z.fouls[0]+z.fouls[1]>0;
 }
-/* Zweiter Schritt: Match sichern oder wegwerfen. */
-function neuesMatchSchritt2(){
-  var info=LSOK
-    ? '<div class="askInfo">Das alte Match kann gespeichert werden.</div>'
-    : '<div class="askInfo warn">Dieser Browser speichert nicht im Gerät. '+
-      "Sichern geht nur als Datei.</div>";
-  askOpen("Altes Match",sumHtml()+info,
-    LSOK?"Speichern, dann neu":"Als Datei sichern, dann neu",
-    LSOK?endeSpeicher:endeDatei,
-    "Ohne sichern neu",startDialog);
-}
-el("mNew").addEventListener("click",function(){
-  el("ovMenu").className="ov";
-  if(!etwasPassiert()){startDialog();return;}
-  /* Läuft noch ein Frame mit Punkten? Dann erst klären, wer ihn gewinnt. */
-  var offen=(S.phase!=="done")&&(S.sc[0]+S.sc[1]>0);
-  if(offen){
-    askOpen("Laufender Frame",
-      '<div class="askInfo">Stand '+S.sc[0]+"–"+S.sc[1]+
-      ". Wer gewinnt diesen Frame?</div>",
-      NAME[0],function(){snap();awardFrame(0," von Hand");neuesMatchSchritt2();},
-      NAME[1],function(){snap();awardFrame(1," von Hand");neuesMatchSchritt2();},
-      "Nicht werten",function(){snap();neuesMatchSchritt2();});
-    return;
-  }
-  neuesMatchSchritt2();
-},false);
 /* ---------- Pause ---------- */
 el("mPause").addEventListener("click",function(){
   el("ovMenu").className="ov";
@@ -3681,10 +3488,11 @@ el("pWeiter").addEventListener("click",function(){
   el("ovPause").className="ov"; draw();
 },false);
 
-el("mExport").addEventListener("click",function(){exportAlles(null);},false);
-
-el("mNames").addEventListener("click",function(){
-  el("ovMenu").className="ov";
+/* "Namen ändern" sitzt jetzt in der Korrektur: ein Tippfehler im Namen
+   ist eine Reparatur wie jede andere. Das Spiel-Menü bleibt dafür frei
+   von allem, was nicht mit dem laufenden Frame zu tun hat. */
+el("xNames").addEventListener("click",function(){
+  el("ovFix").className="ov";
   el("in0").value=NAME[0]; el("in1").value=NAME[1];
   el("ovNames").className="ov on";
 },false);
@@ -4521,7 +4329,6 @@ el("impFile").addEventListener("change",function(){
 },false);
 
 el("hImport").addEventListener("click",function(){importAlles(homeAuf);},false);
-el("mImport").addEventListener("click",function(){importAlles(null);},false);
 
 /* ---------- Startseite ---------- */
 function homeAuf(){
@@ -4551,6 +4358,11 @@ function homeAuf(){
     el("hWeiter").style.display="none";
   }
   el("homeInfo").innerHTML=h;
+  /* Läuft im Speicher ein Match, muss es einen Weg zurück geben. Ohne
+     den ist die Startseite eine Falle: ein frisch eingerichtetes Match
+     hat noch keinen Punkt, taucht deshalb nicht unter "Match fortsetzen"
+     auf, und die ganze Einrichtung wäre neu zu tippen. */
+  el("hBack").style.display=sichern?"":"none";
   el("ovHome").className="ov on";
 }
 el("hWeiter").addEventListener("click",function(){
@@ -4575,6 +4387,9 @@ el("hNeu").addEventListener("click",function(){
   }
   aktuelleLiga=null;
   startDialogMit("","");
+},false);
+el("hBack").addEventListener("click",function(){
+  el("ovHome").className="ov"; draw();
 },false);
 el("hLiga").addEventListener("click",ligenSeite,false);
 el("hListe").addEventListener("click",listeSeite,false);
@@ -5079,8 +4894,7 @@ function drawBreaks(){
    Farbthema gilt. Beides muss zusammen gesetzt werden, sonst loescht
    ein Tabwechsel das Thema. */
 var THKEY="snooker_thema", thema="";
-var THFARBE={"":"#cc5500","thema-nacht":"#10141a",
-             "thema-tuch":"#5a3a1e","thema-signal":"#16202b"};
+var THFARBE={"":"#cc5500","thema-nacht":"#10141a"};
 
 function bodyKlasse(){
   var t=(tab==="match"?"":tab);
@@ -5091,8 +4905,7 @@ function themeColor(){
   var m=document.querySelector('meta[name="theme-color"]');
   if(m)m.setAttribute("content",THFARBE[thema]||THFARBE[""]);
 }
-var FWK={"":"fw-jetzt","thema-nacht":"fw-nacht",
-         "thema-tuch":"fw-tuch","thema-signal":"fw-signal"};
+var FWK={"":"fw-standard","thema-nacht":"fw-nacht"};
 function farbwahlMalen(){
   var b=el("farbwahl").getElementsByTagName("button"),i,t;
   for(i=0;i<b.length;i++){
@@ -5109,7 +4922,13 @@ function themaSetzen(t,merken){
 }
 function themaLesen(){
   if(!LSOK)return "";
-  try{return window.localStorage.getItem(THKEY)||"";}catch(e){return "";}
+  /* Frühere Fassungen kannten auch "Tuch" und "Signal". Steht so etwas
+     noch im Gerät, gäbe es dafür kein CSS mehr - dann wäre die Anzeige
+     halb entfärbt. Alles Unbekannte fällt deshalb auf Standard zurück. */
+  try{
+    var t=window.localStorage.getItem(THKEY)||"";
+    return THFARBE.hasOwnProperty(t)?t:"";
+  }catch(e){return "";}
 }
 el("farbwahl").addEventListener("click",function(e){
   var b=e.target; while(b&&b.tagName!=="BUTTON")b=b.parentNode;
