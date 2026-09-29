@@ -1,0 +1,30 @@
+# Wecker fuer den Server.
+#
+# Supabase legt kostenlose Projekte nach etwa 7 Tagen ohne Zugriff
+# schlafen. Dann findet das Tablet den Server nicht mehr. Dieser Wecker
+# fragt alle 3 Tage einmal kurz die Datenbank ab, damit das nicht passiert.
+#
+# Der Schluessel ist derselbe oeffentliche wie in SnookerApp.html.
+# Von Hand anstossen: GitHub > Actions > Wecker > Run workflow.
+
+name: Wecker
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  stupsen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Datenbank kurz abfragen
+        env:
+          SRV: https://wowzxntkaaahovldaozt.supabase.co/rest/v1/
+          KEY: sb_publishable_OY5VghSFG2QSRQ4_o_Y0mg_es9zDAS1
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "${SRV}matches?select=id&limit=1" \
+            -H "apikey: ${KEY}" -H "Authorization: Bearer ${KEY}")
+          echo "Server antwortet mit ${code}"
+          test "${code}" = "200"
