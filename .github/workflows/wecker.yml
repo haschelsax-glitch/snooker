@@ -1,30 +1,39 @@
 # Wecker fuer den Server.
 #
-# Supabase legt kostenlose Projekte nach etwa 7 Tagen ohne Zugriff
-# schlafen. Dann findet das Tablet den Server nicht mehr. Dieser Wecker
-# fragt alle 3 Tage einmal kurz die Datenbank ab, damit das nicht passiert.
+# Supabase legt kostenlose Projekte schlafen, wenn sie in einer Woche
+# zu wenig Datenbank-Zugriffe hatten. Laut Supabase reichen "ein paar
+# Anfragen pro Tag". Alle 3 Tage einmal war zu wenig (im Oktober 2026
+# trotzdem eingeschlafen). Darum jetzt dreimal am Tag, mit echten
+# Abfragen auf mehrere Tabellen.
 #
 # Der Schluessel ist derselbe oeffentliche wie in SnookerApp.html.
 # Von Hand anstossen: GitHub > Actions > Wecker > Run workflow.
+# Schlaegt der Lauf fehl, schickt GitHub eine E-Mail.
 
 name: Wecker
 
 on:
   schedule:
-    - cron: "17 6 */3 * *"
+    - cron: "17 5 * * *"
+    - cron: "17 12 * * *"
+    - cron: "17 19 * * *"
   workflow_dispatch:
 
 jobs:
   stupsen:
     runs-on: ubuntu-latest
     steps:
-      - name: Datenbank kurz abfragen
+      - name: Datenbank abfragen
         env:
           SRV: https://wowzxntkaaahovldaozt.supabase.co/rest/v1/
           KEY: sb_publishable_OY5VghSFG2QSRQ4_o_Y0mg_es9zDAS1
         run: |
-          code=$(curl -sS -o /dev/null -w "%{http_code}" \
-            "${SRV}matches?select=id&limit=1" \
-            -H "apikey: ${KEY}" -H "Authorization: Bearer ${KEY}")
-          echo "Server antwortet mit ${code}"
-          test "${code}" = "200"
+          fehler=0
+          for t in "matches?select=id&limit=5" "spieler?select=name&limit=5" "v_bestenliste?limit=5"; do
+            code=$(curl -sS -m 30 -o /dev/null -w "%{http_code}" \
+              "${SRV}${t}" \
+              -H "apikey: ${KEY}" -H "Authorization: Bearer ${KEY}" || echo 000)
+            echo "${t%%\?*}: ${code}"
+            [ "${code}" = "200" ] || fehler=1
+          done
+          exit ${fehler}
