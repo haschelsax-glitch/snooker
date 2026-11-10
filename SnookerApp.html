@@ -1697,6 +1697,10 @@ function foulWert(){
 function snookerNoetig(p){
   if(S.phase==="done")return 0;
   var d=S.sc[1-p]-S.sc[p], r=onTable(), f=foulWert();
+  /* Steht der Gegner nach einer Roten auf einer Farbe, gehoert diese Farbe
+     nur ihm: verschiesst er sie, kommt der Wartende auf Rot (bzw. Gelb).
+     Die bis zu 7 Punkte fuer diese Farbe kann der Wartende nie holen. */
+  if(S.phase==="colour"&&p!==S.cur)r-=7;
   if(d<=r)return 0;
   return Math.ceil((d-r)/f);
 }
